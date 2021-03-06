@@ -1,0 +1,77 @@
+How to install from SVN (Subversion)
+
+- These prerequisite instructions were used to build FPC fixes_3_0 on 2017-05-21
+  - Follow the binary install instructions to install the 3_0_0 release.
+  cd /opt/fpc
+  rm current
+  ln -s release_3_0_0 current
+
+- First time retrieve from Subversion
+  cd /opt/fpc
+  mkdir /opt/fpc/fixes_3_0
+  cd fixes_3_0
+  - Stable branch
+    svn checkout http://svn.freepascal.org/svn/fpc/branches/fixes_3_0 src 
+  - Development branch
+    svn checkout http://svn.freepascal.org/svn/fpc/trunk src
+  - It is a good idea to backup the source before attempting a compile
+        because make clean doesn't fully clean the garbase out.
+    cd /opt/fpc/fixes_3_0/src
+    ArchiveThisDirectory
+    
+- Update the source from Subversion
+   cd /opt/fpc/fixes_3_0/src
+   svn update
+  - It is a good idea to backup the source before attempting a compile
+        because make clean doesn't fully clean the garbase out.
+    cd /opt/fpc/fixes_3_0/src
+    ArchiveThisDirectory
+
+- Complile
+   cd /opt/fpc/fixes_3_0/src
+   make OPT='-g -gl -gw3 -n' zipinstall
+   
+      
+   **************************************************************
+   * Old instructions for OS X to create a 64 bit instead of 32.
+   * It also included the -gl (line info debug) option which no
+   * longer works when compiling the fixes_3_0 branch.
+   *************************************************************
+   cd /opt/fpc/fixes_3_0/src
+   - 32 bit version
+     make OPT='-gl' zipinstall
+   - 64 bit version
+     make OPT='-gl -Px86_64' zipinstall
+
+- Compiling the code to be 386 compatable: (Very old instructions)
+   - Edit the root directory Makefile.fpc and remove all the RELEASE references.
+   fpcmake -r -w
+   - compile for 386/486
+     make OPT='-gl -n -Op1 -CfX87' build
+   - compile for Pentium/PentiumMMX (With RELEASE=1 -Op = 3)
+     make OPT='-gl -n -Op2 -CfX87' build
+
+- Install the new zip
+   cd /opt/fpc/fixes_3_0
+   tar -zxvf src/fpc-3.0.3.x86_64-linux.tar.gz
+   cd bin
+   ln -s ../lib/fpc/3.0.3/ppcx64 .
+   cd /opt/fpc
+   rm current
+   ln -s fixes_3_0 current
+
+
+
+
+
+
+
+
+
+
+- Fix Debian library symbolic links
+   cd /usr/lib/
+   ln -s libgpm.so.1 libgpm.so
+   cd /lib
+   ln -s libncurses.so.5 libncurses.so
+

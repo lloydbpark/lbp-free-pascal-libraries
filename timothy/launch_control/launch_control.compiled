@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Compiler Value="/opt/fpc/fpc-current/bin/ppc386" Date="1139451236"/>
+  <Params Value=" -S2cgi -OG1 -gl -WG -vewnhi -l -Fu/opt/lazarus/bin/lcl/units/i386-linux/ -Fu/opt/lazarus/bin/lcl/units/i386-linux/gtk/ -Fu/opt/lazarus/bin/packager/units/i386-linux/ -Fu. -o/home/lpark/pascal/timothy/launch_control/launch_control -dLCL -dLCLgtk launch_control.lpr"/>
+</CONFIG>

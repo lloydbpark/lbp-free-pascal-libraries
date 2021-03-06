@@ -1,0 +1,16 @@
+LazarusResources.Add('TMainForm','FORMDATA',[
+  'TPF0'#9'TMainForm'#8'MainForm'#13'ActiveControl'#7#17'SourceFileListBox'#7'C'
+  +'aption'#6#21'Amey''s Photo Transfer'#12'ClientHeight'#3#232#2#11'ClientWidt'
+  +'h'#3#248#3#5'Color'#7#7'clBlack'#8'OnCreate'#7#10'FormCreate'#13'PixelsPerI'
+  +'nch'#2'~'#18'HorzScrollBar.Page'#3#247#3#18'VertScrollBar.Page'#3#231#2#4'L'
+  +'eft'#3#238#0#6'Height'#3#232#2#3'Top'#3#153#0#5'Width'#3#248#3#0#6'TImage'
+  +#12'CurrentPhoto'#5'Align'#7#8'alClient'#6'Center'#9#12'Proportional'#9#7'St'
+  +'retch'#9#11'Transparent'#9#6'Height'#3#232#2#5'Width'#3#248#3#0#0#12'TFileL'
+  +'istBox'#17'SourceFileListBox'#11'MultiSelect'#9#8'TabOrder'#2#0#4'Left'#2#8
+  +#6'Height'#3#177#2#3'Top'#2'0'#5'Width'#3#153#0#0#0#14'TDirectoryEdit'#19'So'
+  +'urceDirectoryEdit'#9'Directory'#6#11'/home/lpark'#17'OnAcceptDirectory'#7'"'
+  +'SourceDirectoryEditAcceptDirectory'#11'DialogTitle'#6#28'Choose the Source '
+  +'Directory '#11'ButtonWidth'#2#23#11'DirectInput'#8#9'NumGlyphs'#2#1#11'Pare'
+  +'ntColor'#8#8'ReadOnly'#9#8'TabOrder'#2#1#8'ReadOnly'#9#8'TabOrder'#2#1#4'Le'
+  +'ft'#2#8#6'Height'#2#24#3'Top'#2#16#5'Width'#3' '#1#0#0#0
+]);

@@ -1,0 +1,18 @@
+Linux dynamic library file names end in .so. followed by version numbers.  In 
+the past the distributions had symbolic links with names that just ended in 
+.so and pointed one of the versions of the library.  Many programs used the 
+non-versioned file name to dynamically load the library. This caused some 
+issues when multiple versions of a library were installed and different 
+programs used different versions. 
+
+Free Pascal seems to continue to expect this old behavior.
+An example would be the openssl library.  
+Linux dynamic libraries names changes from one
+distribution to anoth
+
+
+cd /usr/lib/x86_64-linux-gnu
+ln -s libmysqlclient.so.20.3.12 libmysqlclient_r.so
+ln -s libmysqlclient.so.20.3.12 libmysqlclient.so
+ln -s libssl.so.1.1 libssl.so
+ln -s libcrypto.so.1.1 libcrypto.so

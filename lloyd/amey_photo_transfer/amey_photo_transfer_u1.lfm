@@ -1,0 +1,49 @@
+object MainForm: TMainForm
+  ActiveControl = SourceFileListBox
+  Caption = 'Amey''s Photo Transfer'
+  ClientHeight = 744
+  ClientWidth = 1016
+  Color = clBlack
+  OnCreate = FormCreate
+  PixelsPerInch = 126
+  HorzScrollBar.Page = 1015
+  VertScrollBar.Page = 743
+  Left = 238
+  Height = 744
+  Top = 153
+  Width = 1016
+  object CurrentPhoto: TImage
+    Align = alClient
+    Center = True
+    Proportional = True
+    Stretch = True
+    Transparent = True
+    Height = 744
+    Width = 1016
+  end
+  object SourceFileListBox: TFileListBox
+    MultiSelect = True
+    TabOrder = 0
+    Left = 8
+    Height = 689
+    Top = 48
+    Width = 153
+  end
+  object SourceDirectoryEdit: TDirectoryEdit
+    Directory = '/home/lpark'
+    OnAcceptDirectory = SourceDirectoryEditAcceptDirectory
+    DialogTitle = 'Choose the Source Directory '
+    ButtonWidth = 23
+    DirectInput = False
+    NumGlyphs = 1
+    ParentColor = False
+    ReadOnly = True
+    TabOrder = 1
+    ReadOnly = True
+    TabOrder = 1
+    Left = 8
+    Height = 24
+    Top = 16
+    Width = 288
+  end
+end

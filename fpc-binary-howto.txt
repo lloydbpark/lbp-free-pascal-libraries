@@ -1,0 +1,13 @@
+This is an example of installing the 2.6.2 precompiled binary version of FPC.
+
+  - Install Developer tools
+    - In RedHat 7: yum groupinstall 'Development Tools'
+    - In Ubuntu: ??
+
+
+cd /opt/fpc
+mkdir v2.6.4-binary
+tar -xvf fpc-2.6.4.x86_64-linux.tar
+cd fpc-2.6.4.x86_64-linux
+./install.sh
+  - Install prefix = /opt/fpc/v2.6.4-binary
