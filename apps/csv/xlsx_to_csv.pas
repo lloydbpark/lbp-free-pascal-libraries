@@ -70,6 +70,8 @@ procedure InitArgvParser();
       InsertParam( ['x', 'xls'], true, '', 'The name of the Excel .xlsx file to be converted.');
       InsertParam( ['s', 'sheet'], true, '', 'Specifiy the sheet in the workbook to convert to');
       InsertUsage( '                                 CSV.  By default the first sheet is converted.');
+      InsertParam( ['l', 'list'], false, '', 'List the names of the sheets in the input');
+      InsertUsage( '                                 workbook instead of converting toCSV.');
       InsertUsage();
 
       ParseParams();  // parse the command line
@@ -77,11 +79,49 @@ procedure InitArgvParser();
 
 
 // ************************************************************************
+// * OutputSheetNames() - Output all the sheet names in the workbook.
+// ************************************************************************
+
+procedure OutputSheetNames( var W: tsWorkbook);
+   var
+      S:    tsWorkSheet;
+      i:    integer;
+      iMax: integer;
+   begin
+      iMax:= W.GetWorksheetCount -1;
+      for i:= 0 to iMax do begin
+         S:= W.GetWorksheetByIndex( i);
+         Writeln( S.Name);
+      end;
+   end; // OutputSheetNames()
+
+
+// ************************************************************************
+// * Convert()
+// ************************************************************************
+
+procedure Convert( W: tsWorkbook);
+   begin
+      // Change the default sheet if the user asked for a different one
+      if( ParamSet( 's')) then begin
+         CSVParams.SheetIndex:= W.GetWorksheetIndex( GetParam( 's'));
+         if( CSVParams.SheetIndex < 0) then begin
+            raise tCsvException.Create( 'The sheet ''%s'' was not found!', 
+                     [ GetParam( 's')]);
+         end;
+      end; // if ParamSet
+      CSVParams.Delimiter:= ',';
+
+      W.WriteToStream( OutputStream, sfCSV);
+   end; // Convert()
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 
 var
-   Workbook:  tsWorkbook;
+   W:    tsWorkbook;
 begin
    InitArgvParser();
 
@@ -89,19 +129,10 @@ begin
       Usage( true, 'You must specify the file name of the Excel .xlsx file!');
    end;
 
-   Workbook:= tsWorkbook.Create;
-   Workbook.ReadFromFile( GetParam( 'x'));
+   W:= tsWorkbook.Create;
+   W.ReadFromFile( GetParam( 'x'));
 
-   // Change the default sheet if the user asked for a different one
-   if( ParamSet( 's')) then begin
-      CSVParams.SheetIndex:= Workbook.GetWorksheetIndex( GetParam( 's'));
-      if( CSVParams.SheetIndex < 0) then begin
-         raise tCsvException.Create( 'The sheet ''%s'' was not found!', 
-                  [ GetParam( 's')]);
-      end;
-   end; // if ParamSet
-   CSVParams.Delimiter:= ',';
+   if( ParamSet( 'l')) then OutputSheetNames( W) else Convert( W);
 
-   Workbook.WriteToStream( OutputStream, sfCSV);
-   Workbook.Destroy();
+   W.Destroy();
 end. // xlsx_to_csv program
