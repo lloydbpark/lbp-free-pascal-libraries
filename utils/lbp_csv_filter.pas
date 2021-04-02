@@ -84,7 +84,8 @@ type
 type
    tCsvInputFileFilter = class( tCsvFilter)
       protected
-         Csv: tCsv;
+         Csv:      tCsv;
+         AutoTrim:  boolean;
          procedure Go(); override;
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
@@ -93,6 +94,7 @@ type
          destructor  Destroy(); override;
          procedure   SetInputDelimiter( iD: char);
          procedure   SetSkipNonPrintable( Skip: boolean);
+         procedure   NoAutoTrim( NoTrim: boolean);
       end; // tCsvInputFileFilter
 
 
@@ -551,6 +553,8 @@ procedure tCsvInputFileFilter.Go();
       Temp:  tCsvCellArray;
       C:     char;
    begin
+   {$error Add the AutoTrim feature
+   {$error Remember to add the parameter to the lbp_csv_io_filters}
       Csv.ParseHeader();
       NextFilter.SetInputHeader( Csv.Header);
       repeat
@@ -580,7 +584,7 @@ procedure tCsvInputFileFilter.SetSkipNonPrintable( Skip: boolean);
       Csv.SkipNonPrintable:= Skip;
    end; // SetSkipNonPrintable()
 
-
+{$error Add thte NotAutoTrim function}
 
 // ========================================================================
 // = tCsvOutputFileFilter class
