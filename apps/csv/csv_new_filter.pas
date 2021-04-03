@@ -57,24 +57,20 @@ uses
 
 
 // *************************************************************************
-// * tCsvSetFieldFilter()
+// * tCsvFixZeroFilter()
 // *************************************************************************
 
 type
-   tCsvSetFieldFilter = class( tCsvFilter)
+   tCsvFixZeroFilter = class( tCsvFilter)
       private
-         Values:       tCsvCellArray;
          Fields:       tCsvCellArray; 
+         Indexes:      Array of integer;
          FieldLength:  integer; 
-         Indexes:      tIntegerArray;
-         AllCells:     boolean;
       public
-         constructor Create( iFieldCsv: string;
-                             iValueCsv: string;
-                             iAllCells: boolean = false);
+         constructor Create( iFieldCsv: string);
          procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
-      end; // tCsvSetFieldFilter
+      end; // tCsvFixZeroFilter
 
 
 // *************************************************************************
@@ -82,27 +78,19 @@ type
 implementation
 
 // ========================================================================
-// = tCsvSetFieldFilter class - Set a default value for a field
+// = tCsvFixZeroFilter class - Replace any zero's in the passed iFieldCSV
+// =                   cells with the empty string.
 // ========================================================================
 // *************************************************************************
 // * Create() - constructor
 // *************************************************************************
 
-constructor tCsvSetFieldFilter.Create( iFieldCsv: string;
-                                       iValueCsv: string;
-                                       iAllCells: boolean = false);
-   var
-      VL: integer;
+constructor tCsvFixZeroFilter.Create( iFieldCsv: string);
    begin
       inherited Create();
       Fields:= StringToCsvCellArray( iFieldCsv);
-      Values:= StringToCsvCellArray( iValueCsv);
-      AllCells:= iAllCells;
-
       FieldLength:= Length( Fields);
       SetLength( Indexes, FieldLength);
-      VL:= Length( Values);
-      if( VL <> FieldLength) then lbp_argv.Usage( true, FieldValueLengthError);
    end; // Create() 
 
 
@@ -110,7 +98,7 @@ constructor tCsvSetFieldFilter.Create( iFieldCsv: string;
 // * SetInputHeader()
 // *************************************************************************
 
-procedure tCsvSetFieldFilter.SetInputHeader( Header: tCsvCellArray);
+procedure tCsvFixZeroFilter.SetInputHeader( Header: tCsvCellArray);
    var 
       HL:       integer; // Header Length
       HI:       integer; // Header index
@@ -152,18 +140,14 @@ procedure tCsvSetFieldFilter.SetInputHeader( Header: tCsvCellArray);
 // * SetRow() - Add the row to the tree
 // *************************************************************************
 
-procedure tCsvSetFieldFilter.SetRow( Row: tCsvCellArray);
+procedure tCsvFixZeroFilter.SetRow( Row: tCsvCellArray);
    var
       i:      integer;
       iMax:   integer;
       iCell:  integer;
    begin
-      // Set default values for fields
-      iMax:= FieldLength - 1;
-      for i:= 0 to iMax do begin
-         iCell:= Indexes[ i];
-         if( AllCells or (Row[ iCell] = '')) then Row[ iCell]:= Values[ i];
-      end;
+      // For each cell we need to check
+      for i in Indexes do if( Row[ i] = '0') then Row[ i]:= '';
       
       NextFilter.SetRow( Row);
    end; // SetRow();

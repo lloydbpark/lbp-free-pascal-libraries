@@ -404,6 +404,23 @@ type
 
 
 // *************************************************************************
+// * tCsvFixZeroFilter()
+// *************************************************************************
+
+type
+   tCsvFixZeroFilter = class( tCsvFilter)
+      private
+         Fields:       tCsvCellArray; 
+         Indexes:      Array of integer;
+         FieldLength:  integer; 
+      public
+         constructor Create( iFieldCsv: string);
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
+      end; // tCsvFixZeroFilter
+
+
+// *************************************************************************
 
 implementation
 
@@ -1908,6 +1925,80 @@ procedure tCsvSequenceFilter.SetRow( Row: tCsvCellArray);
       NextFilter.SetRow( Row);
    end; // SetRow()
 
+
+
+// ========================================================================
+// = tCsvFixZeroFilter class - Replace any zero's in the passed iFieldCSV
+// =                   cells with the empty string.
+// ========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvFixZeroFilter.Create( iFieldCsv: string);
+   begin
+      inherited Create();
+      Fields:= StringToCsvCellArray( iFieldCsv);
+      FieldLength:= Length( Fields);
+      SetLength( Indexes, FieldLength);
+   end; // Create() 
+
+
+// *************************************************************************
+// * SetInputHeader()
+// *************************************************************************
+
+procedure tCsvFixZeroFilter.SetInputHeader( Header: tCsvCellArray);
+   var 
+      HL:       integer; // Header Length
+      HI:       integer; // Header index
+      FI:       integer; // Fields index;
+      Found:    boolean;
+      ErrorMsg: string;
+   begin
+      // If an empty Fields was passed to Create(), then we use all the fields
+      HL:=  Length( Header);
+
+      // For each  Field
+      FI:= 0;
+      while( FI < FieldLength) do begin
+         HI:= 0;
+         Found:= false;
+  
+         // for each Header
+         while( (not found) and (HI < HL)) do begin
+            if( Header[ HI] = Fields[ FI]) then begin
+               Found:= true;
+               Indexes[ FI]:= HI;
+            end;
+            inc( HI);
+         end; // while Header
+  
+         if( not Found) then begin
+            ErrorMsg:= Format( HeaderUnknownField, [Fields[ FI]]);
+            lbp_argv.Usage( true, ErrorMsg);
+         end;
+
+         inc( FI);  
+      end; // while Fields
+
+      NextFilter.SetInputHeader( Header);
+   end; // SetInputHeader
+
+
+// *************************************************************************
+// * SetRow() - Add the row to the tree
+// *************************************************************************
+
+procedure tCsvFixZeroFilter.SetRow( Row: tCsvCellArray);
+   var
+      i:      integer;
+   begin
+      // For each cell we need to check
+      for i in Indexes do if( Row[ i] = '0') then Row[ i]:= '';
+      
+      NextFilter.SetRow( Row);
+   end; // SetRow();
 
 
 // *************************************************************************
