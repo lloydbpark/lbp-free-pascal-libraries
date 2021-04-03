@@ -82,9 +82,10 @@ procedure ParseArgv();
       CsvOutputFilter:= tCsvOutputFileFilter.Create( OutputFile);
       CsvFilterQueue:= tCsvFilterQueue.Create();
 
-      // Set SkipNonPrintable
+      // Set SkipNonPrintable and AutoTrim
       CsvInputFilter.SetSkipNonPrintable( ParamSet( 's'));
-
+      CsvInputFilter.SetNoAutoTrim( ParamSet( 'no-auto-trim'));
+      
       // Set the input delimiter
       if( ParamSet( 'id')) then begin
          Delimiter:= GetParam( 'id');
@@ -126,6 +127,10 @@ initialization
       AddParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
       AddParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
       AddParam( ['s', 'skip-non-printable'], false, '', 'Try to fix files with some unicode characters.');
+      AddParam( ['no-auto-trim'], false, '', 'By default extra blank column heder fields on the');
+      AddUsage( '                                 right are stripped off and each row thereafter');
+      AddUsage( '                                 is trimmed to that size.  Use --no-auto-trip');
+      AddUsage( '                                 to turn off this feature.');
       AddUsage();
 
       AddPostParseProcedure( @ParseArgv);

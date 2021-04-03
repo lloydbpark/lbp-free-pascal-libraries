@@ -94,7 +94,7 @@ type
          destructor  Destroy(); override;
          procedure   SetInputDelimiter( iD: char);
          procedure   SetSkipNonPrintable( Skip: boolean);
-         procedure   NoAutoTrim( NoTrim: boolean);
+         procedure   SetNoAutoTrim( NoTrim: boolean);
       end; // tCsvInputFileFilter
 
 
@@ -502,7 +502,7 @@ procedure tCsvFilterQueue.Go();
 
 
 // ========================================================================
-// = tCsvInputFileFilter class
+// = tCsvFilter class
 // ========================================================================
 // *************************************************************************
 // * Create() - constructors
@@ -520,6 +520,7 @@ constructor tCsvInputFileFilter.Create( iString: string; IsFileName: boolean);
    begin
       inherited Create();
       Csv:= tCsv.Create( iString, IsFileName);
+      AutoTrim:= true;
    end; // Create()
 
 
@@ -529,6 +530,7 @@ constructor tCsvInputFileFilter.Create( var iFile: text);
    begin
       inherited Create();
       Csv:= tCsv.Create( iFile);
+      AutoTrim:= true;
    end; // Create()
 
 
@@ -550,16 +552,44 @@ destructor tCsvInputFileFilter.Destroy();
 
 procedure tCsvInputFileFilter.Go();
    var
-      Temp:  tCsvCellArray;
-      C:     char;
+      Row:           tCsvCellArray;
+      C:             char;
+      i:             integer;
+      L:             integer; // Length of all rows when AutoTrim is used
+      Cell:          string; 
+      NeedsTrimmed:  boolean = false;
    begin
-   {$error Add the AutoTrim feature
-   {$error Remember to add the parameter to the lbp_csv_io_filters}
-      Csv.ParseHeader();
-      NextFilter.SetInputHeader( Csv.Header);
+      // Read the header as a standard row;
+      Row:= Csv.ParseRow();
+      if( Length( Row) = 0) then begin
+         raise tCsvException.Create( 'Malformed CSV file!  The header line is empty.');
+      end;
+      if( AutoTrim) then begin
+         // Trim the header if needed and save the length
+         i:= Length( Row) - 1;
+         L:= i;
+         while( (i > 0) and (Row[ i] = '')) do Dec( i);
+         if( i <> L) then begin
+            NeedsTrimmed:= true;
+            L:= i + 1; // L is the new length
+            SetLength( Row, L);
+         end;
+      end;        
+
+      // Now check for blank header field names in what is left
+      for Cell in Row do begin
+         if( Cell = '') then begin
+            raise tCsvException.Create( 'Empty names in the header row are not allowed!');
+         end;
+      end;
+
+      NextFilter.SetInputHeader( Row);
       repeat
-         Temp:= Csv.ParseRow();
-         if( Length( Temp) > 0) then NextFilter.SetRow( Temp);
+         Row:= Csv.ParseRow();
+         if( Length( Row) > 0) then begin
+            if( NeedsTrimmed) then SetLength( Row, L);
+            NextFilter.SetRow( Row);
+         end;
          C:= Csv.PeekChr();
       until( C = EOFchr);
    end; // Go()
@@ -584,7 +614,16 @@ procedure tCsvInputFileFilter.SetSkipNonPrintable( Skip: boolean);
       Csv.SkipNonPrintable:= Skip;
    end; // SetSkipNonPrintable()
 
-{$error Add thte NotAutoTrim function}
+
+// *************************************************************************
+// * SetNoAutoTrim() - Turns the Auto Trim feature on or off 
+// *************************************************************************
+
+procedure tCsvInputFileFilter.SetNoAutoTrim( NoTrim: boolean);
+   begin
+      AutoTrim:= not NoTrim;
+   end; // SetNoAutoTrim()
+
 
 // ========================================================================
 // = tCsvOutputFileFilter class

@@ -75,6 +75,8 @@ type
          property   IndexStr: string read MyIndexString;
    end; // tSpreadsheetColumnLabel() class
 
+type
+   tIndexDict = specialize tgDictionary<string, integer>;
 
 
 // ========================================================================
@@ -153,7 +155,6 @@ procedure tSpreadsheetColumnLabel.IncrementDigit( DigitIndex: integer);
          if( NewIndex < 1) then raise EIntOverflow.Create( 'The column index value overflowed');
          if( NewIndex < Lowest) then begin
             Lowest:= NewIndex;
-            writeln( 'First use of digit ', Length( MyValue) - Lowest + 1, ' at i = ', MyHeaderIndex);
          end;
          IncrementDigit( NewIndex);
       end else begin
@@ -198,6 +199,7 @@ var  // Command line parameter related variables
       'Column/index and horizontal view may not be specified at the same time!';
    SortedError:    string =
       'Simultaneous sorted and column/index view modes are not supported!';
+   IndexDict:      tIndexDict;
 
 
 // ************************************************************************
@@ -252,6 +254,59 @@ procedure InitArgvParser();
    end; // InitArgvParser();
 
 
+// *************************************************************************
+// * ParseHeader() - Read the header so we can lookup column numbers by name
+// *************************************************************************
+
+function ParseHeader( CSV: tCsv): integer;
+   var
+      MyHeader:  tCsvCellArray;
+      i:       integer;
+      iMax:    integer;
+   begin
+      MyHeader:= Csv.ParseRow();
+      result:= Length( MyHeader);
+      iMax:= result - 1;
+      for i:= 0 to iMax do IndexDict.Add( MyHeader[ i], i);
+   end; // ParseHeader()
+
+
+// *************************************************************************
+// * GetHeader() - Returns an array of header names in the order they appear 
+// *               in the CSV.
+// *************************************************************************
+
+function GetHeader():  tCsvCellArray;
+   var
+      Row:  tCsvCellArray;
+   begin
+      SetLength( Row, IndexDict.Count);
+      IndexDict.StartEnumeration;
+      while( IndexDict.Next) do Row[ IndexDict.Value]:= IndexDict.Key;
+      Result:= Row;
+   end; // Header()
+
+
+// *************************************************************************
+// * GetSortedHeader() - Returns an array of header names sorted 
+// *                  alphabetically.
+// *************************************************************************
+
+function GetSortedHeader(): tCsvCellArray;
+   var
+      i:    integer= 0;
+      Row:  tCsvCellArray;
+   begin
+      SetLength( Row, IndexDict.Count);
+      IndexDict.StartEnumeration;
+      while( IndexDict.Next) do begin
+         Row[ i]:= IndexDict.Key;
+         inc( i);
+      end; 
+      result:= Row;
+   end; // SortedHeader()
+
+
 // ************************************************************************
 // * main()
 // ************************************************************************
@@ -265,11 +320,14 @@ var
 begin
    InitArgvParser();
 
+   IndexDict:= tIndexDict.Create( tIndexDict.tCompareFunction( @CompareStrings), true);
+
+
    // Get the header
    Csv:= tCsv.Create( lbp_input_file.InputStream, False);
    Csv.Delimiter:= Delimiter[ 1];
-   Csv.ParseHeader();
-   if( SortedView) then Header:= Csv.SortedHeader else Header:= Csv.Header;
+   ParseHeader( Csv);
+   if( SortedView) then Header:= GetSortedHeader else Header:= GetHeader;
    Csv.Destroy();
    
    if( HorizontalView) then begin
@@ -296,4 +354,6 @@ begin
          end; // for
       end; // else non-column view
    end; // Horizontal else Vertical
+
+   IndexDict.Destroy();
 end.  // csv_header program
