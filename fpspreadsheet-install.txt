@@ -1,6 +1,6 @@
   - Download the latest version from here: <code>
 </code>
-  - Compile LazUtils - Only needed on OS X where 64 bit Lazarus isn't working. 
+  - Compile LazUtils - Not needed on 64 bit Linux? 
     - In Lloyd's default /opt location
 <code>
 cd /opt/lazarus/current/components/lazutils
@@ -15,6 +15,12 @@ recompile_pas
 <code>
 cd /Library/Lazarus/components/lazutils
 recompile_pas
+</code>
+    - For Windows
+<code>
+C:
+cd \opt\k-\lazarus\components\lazutils
+recompile.pas
 </code>
   - Compile fpspreadsheet <code>
 cd ~/programming/pascal/fpspreadsheet/source/common
