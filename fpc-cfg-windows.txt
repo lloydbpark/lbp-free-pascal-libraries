@@ -60,7 +60,7 @@
 #      -Mmacpas   tries to be compatible to the macintosh pascal dialects
 #
 # Turn on Object Pascal extensions by default
-#-Mobjfpc
+-Mobjfpc
 
 # Assembler reader mode
 #      -Rdefault  use default assembler

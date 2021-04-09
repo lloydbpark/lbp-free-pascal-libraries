@@ -56,7 +56,7 @@ procedure InitArgvParser();
    begin
       InsertUsage( '');
       InsertUsage( 'csv_reorder reads a CSV file and outputs it out again with only the columns');
-      InsertUsage( '         specified in the --order parameter and in the order they are');
+      InsertUsage( '         specified in the --header parameter and in the order they are');
       InsertUsage( '         specified.  New empty columns can also be added if the --allow-new');
       InsertUsage( '         command line option is used.');
       InsertUsage( '');

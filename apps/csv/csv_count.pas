@@ -62,7 +62,7 @@ procedure InitArgvParser();
       InsertUsage( '      header.');
       InsertUsage( '');
       InsertUsage( 'Usage:');
-      InsertUsage( '   csv_grep [-f <input file name>] [-d <delimiter character>');
+      InsertUsage( '   csv_count [-f <input file name>] [-d <delimiter character>');
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
       SetInputFileParam( true, true, false, true);
