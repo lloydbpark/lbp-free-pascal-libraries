@@ -1054,9 +1054,11 @@ procedure tCsvGrepFilter.SetRow( Row: tCsvCellArray);
    var
       Found: boolean = false;
       i:     integer;
+      Cell:  string;
    begin
       for i in GrepIndexes do begin
-         if( RegExpr.Exec( Row[ i])) then Found:= true;
+         Cell:= Row[ i];
+         if(( Cell.length > 0) and ( RegExpr.Exec( cell))) then Found:= true;
       end;
 
       if( Found xor InvertMatch) then NextFilter.SetRow( Row);

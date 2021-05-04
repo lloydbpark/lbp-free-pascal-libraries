@@ -89,7 +89,7 @@ var
 begin
    InitArgvParser();
    
-   GrepFields:= GetParam( 'grep-fields');
+   GrepFields:= GetParam( 'h');
    IgnoreCase:=  ParamSet( 'i');
    InvertMatch:= ParamSet( 'v');
    // Get the regular expression from the command line
