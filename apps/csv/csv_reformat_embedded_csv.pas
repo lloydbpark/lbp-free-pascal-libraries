@@ -46,6 +46,7 @@ program csv_fix_zeros;
 uses
    lbp_argv,
    lbp_types,
+   lbp_parse_helper,  // CRchr
    lbp_csv,
    lbp_csv_filter,
    lbp_csv_io_filters;
@@ -71,9 +72,9 @@ procedure InitArgvParser();
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
       InsertParam( ['h','header'], true, '', 'The comma separated list of column names to check'); 
-      InsertParam( ['cid'], true, '', 'The input delimiter character for the embedded');
+      InsertParam( ['cid'], true, ',', 'The input delimiter character for the embedded');
       InsertUsage( '                                 CSV');
-      InsertParam( ['cod'], true, '', 'The output delimiter character for the embedded');
+      InsertParam( ['cod'], true, CRchr, 'The output delimiter character for the embedded');
       InsertUsage( '                                 CSV');
       InsertUsage();
 
@@ -87,12 +88,16 @@ procedure InitArgvParser();
 
 var
    MyFields:        string;
+   Cid:             char = ',';
+   Cod:             char = CRchr;
    ReformatFilter:  tCsvReformatEmbeddedCsvFilter;
 begin
    InitArgvParser();
    
    MyFields:= GetParam( 'header');
-   ReformatFilter:= tCsvReformatEmbeddedCsvFilter.Create( MyFields);
+   if( ParamSet( 'cid')) then Cid:= GetParam( 'cid')[ 1];
+   if( ParamSet( 'cod')) then Cod:= GetParam( 'cod')[ 1];
+   ReformatFilter:= tCsvReformatEmbeddedCsvFilter.Create( MyFields, Cid, Cod);
    
    CsvFilterQueue.Queue:= CsvInputFilter;
    CsvFilterQueue.Queue:= ReformatFilter;

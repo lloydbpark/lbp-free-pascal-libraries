@@ -2113,7 +2113,6 @@ procedure tCsvReformatEmbeddedCsvFilter.SetRow( Row: tCsvCellArray);
          FieldParser.Delimiter:= CsvID;
          TempLine:= FieldParser.ParseRow();
          FieldParser.Destroy();
-//writeln( 'CSV Cell parsed');
 
          // output the cell's separated by 
          iOutMax:= Length( TempLine) - 1;
@@ -2122,7 +2121,6 @@ procedure tCsvReformatEmbeddedCsvFilter.SetRow( Row: tCsvCellArray);
          for iOut:= 1 to iOutMax do begin
             TempStr:= TempStr + TempDelimiter + TempLine[ iOut];
          end;
-//writeln( 'TempStr = ', TempStr);
          Row[ i]:= TempStr;
       end; // for each cell with embedded CSV
       
