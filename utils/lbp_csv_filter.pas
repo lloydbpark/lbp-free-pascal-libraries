@@ -417,7 +417,26 @@ type
          constructor Create( iFieldCsv: string);
          procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
-      end; // tCsvFixZeroFilter
+      end; // tCsvReformatEmbeddedCsvFilter
+
+
+// *************************************************************************
+// * tCsvReformatEmbeddedCsvFilter()
+// *************************************************************************
+
+type
+   tCsvReformatEmbeddedCsvFilter = class( tCsvFilter)
+      private
+         Fields:       tCsvCellArray; 
+         Indexes:      Array of integer;
+         FieldLength:  integer; 
+         CsvID:        char; // Input Delimiter for the ebedded CSV
+         CsvOD:        char; // Output Delimiter for the ebedded CSV
+      public
+         constructor Create( iFieldCsv: string; InputDelimiter: char = ','; OutputDelimiter: char = CRchr);
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
+      end; // tCsvReformatEmbeddedCsvFilter
 
 
 // *************************************************************************
@@ -1998,6 +2017,114 @@ procedure tCsvFixZeroFilter.SetRow( Row: tCsvCellArray);
    begin
       // For each cell we need to check
       for i in Indexes do if( Row[ i] = '0') then Row[ i]:= '';
+      
+      NextFilter.SetRow( Row);
+   end; // SetRow();
+
+
+// ========================================================================
+// = tCsvReformatEmbeddedCsvFilter class - Change the CSV delimiter for
+// =       a row whose fields are multi-value, CSV format data.   
+// ========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvReformatEmbeddedCsvFilter.Create( iFieldCsv:       string;
+                                                  InputDelimiter:  char;
+                                                  OutputDelimiter: char);
+   begin
+      inherited Create();
+      CsvID:= InputDelimiter;
+      CsvOD:= OutputDelimiter;
+
+      Fields:= StringToCsvCellArray( iFieldCsv);
+      FieldLength:= Length( Fields);
+      SetLength( Indexes, FieldLength);
+   end; // Create() 
+
+
+// *************************************************************************
+// * SetInputHeader()
+// *************************************************************************
+
+procedure tCsvReformatEmbeddedCsvFilter.SetInputHeader( Header: tCsvCellArray);
+   var 
+      HL:       integer; // Header Length
+      HI:       integer; // Header index
+      FI:       integer; // Fields index;
+      Found:    boolean;
+      ErrorMsg: string;
+   begin
+      // If an empty Fields was passed to Create(), then we use all the fields
+      HL:=  Length( Header);
+
+      // For each  Field
+      FI:= 0;
+      while( FI < FieldLength) do begin
+         HI:= 0;
+         Found:= false;
+  
+         // for each Header
+         while( (not found) and (HI < HL)) do begin
+            if( Header[ HI] = Fields[ FI]) then begin
+               Found:= true;
+               Indexes[ FI]:= HI;
+            end;
+            inc( HI);
+         end; // while Header
+  
+         if( not Found) then begin
+            ErrorMsg:= Format( HeaderUnknownField, [Fields[ FI]]);
+            lbp_argv.Usage( true, ErrorMsg);
+         end;
+
+         inc( FI);  
+      end; // while Fields
+
+      NextFilter.SetInputHeader( Header);
+   end; // SetInputHeader
+
+
+// *************************************************************************
+// * SetRow() - Process the row
+// *************************************************************************
+
+procedure tCsvReformatEmbeddedCsvFilter.SetRow( Row: tCsvCellArray);
+   var
+      i:              integer;
+      iOut:           integer;
+      FieldParser:    tCsv;
+      TempLine:       tCsvCellArray;
+      TempDelimiter:  string;
+      TempStr:        string;
+      iOutMax:        integer;
+   begin
+      // Set our output delimiter
+      TempDelimiter:= CsvOD;
+      if( (CsvOD = CRchr) or (CsvOD = LFchr)) then begin
+         TempDelimiter:= System.LineEnding;
+      end;
+
+      // For each cell we need to check
+      for i in Indexes do begin
+         // Parse the cell into an array
+         FieldParser:= tCsv.Create( Row[ i]);
+         FieldParser.Delimiter:= CsvID;
+         TempLine:= FieldParser.ParseRow();
+         FieldParser.Destroy();
+//writeln( 'CSV Cell parsed');
+
+         // output the cell's separated by 
+         iOutMax:= Length( TempLine) - 1;
+         TempStr:= '';
+         if( iOutMax >= 0) then TempStr:= TempLine[ 0];
+         for iOut:= 1 to iOutMax do begin
+            TempStr:= TempStr + TempDelimiter + TempLine[ iOut];
+         end;
+//writeln( 'TempStr = ', TempStr);
+         Row[ i]:= TempStr;
+      end; // for each cell with embedded CSV
       
       NextFilter.SetRow( Row);
    end; // SetRow();
