@@ -359,7 +359,7 @@ procedure tDdiFullNodeQuery.DhcpdConfOut( var DhcpdConf: text; DynInfo: tDynInfo
          if( DynInfo.InDynRange) then DynInfo.DhcpdConfOut( DhcpdConf);
 
          // Output the Node's DHCP information
-         writeln( DhcpdConf, '   host ', Name.GetValue, ' {');
+         writeln( DhcpdConf, '   host ', FullName, ' {');
          writeln( DhcpdConf, '      hardware ethernet ', 
                               MacWord64ToString( NIC.OrigValue, ':', 2), ';');
          writeln( DhcpdConf, '      fixed-address ', CurrentIP.GetValue, ';');
