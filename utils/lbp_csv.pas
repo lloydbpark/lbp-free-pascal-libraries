@@ -337,8 +337,8 @@ function tCsv.ParseCell(): string;
 
       C:= PeekChr();
       if( not (C in EndOfCellChrs)) then begin
-         raise tCsvException.Create( 'Cell ''' + result + 
-                  ''' was not followed by a valid end of cell character');
+         raise tCsvException.Create( 'Cell ''%S'' was followed by the ' +
+                     'invalid character: ''0x%2.2X''!', [result, ord(C)]);
       end;
 
       {$ifdef DEBUG_PARSE_HELPER}
