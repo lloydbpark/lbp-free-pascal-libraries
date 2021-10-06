@@ -82,7 +82,7 @@ begin
    InitArgvParser();
    if( Length( UnnamedParams) <> 1) then Usage( True, 'You must enter the hex representation of the ASCII character to be output!');
    S:= UnnamedParams[ 0];
-   if( Length( S) <> 2) then Usage( True, 'The hexidecimal value must be two characters long!' + LineEnding + 'LinUse a leading zero if needed.');
+   if( Length( S) <> 2) then Usage( True, 'The hexidecimal value must be two characters long!' + LineEnding + 'Use a leading zero if needed.');
    for i:= 1 to 2 do begin
       if( not (S[ i]in HexChrs)) then Usage( True, 'The passed parameter must be exactly two hexidecimal characters!');
    end;

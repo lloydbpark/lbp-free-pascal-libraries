@@ -56,6 +56,7 @@ var
    MaxAttempts:  integer  = 4; // The maximum attempts to compile.
    ShowProgress: boolean  = true;
    ShowFailed:   boolean  = true;
+   ReleaseVer:   boolean  = false;
 
 
 // ***********************************************************************
@@ -212,19 +213,23 @@ procedure RecompileSub(  var PasFiles: tStringList; FPC: string);
       i:            integer;
       L:            integer;
       Folder:       string;
-      Options:      array[ 1..1] of string;
+      Options:      array[ 1..3] of string;
       OutputStr:    string;
       ExitStatus:   integer;
       RunResult:    integer;      
    begin
       FailedFiles:= tStringList.Create();
       
-   // writeLn;
-   // writeln;   
       L:= PasFiles.Count - 1;
       for i:= 0 to L do begin
          Folder:= ExtractFilePath( PasFiles.Strings[ i]);
          Options[ 1]:= ExtractFileName( PasFiles.Strings[ i]);
+         if( ReleaseVer) then begin
+            Options[ 2]:= '-dRELEASE';
+         end else begin
+            Options[ 2]:= '-dDEBUG';
+         end;
+         
          
          RunResult:= RunCommandInDir( Folder, FPC, Options, OutputStr, ExitStatus);
          if( (RunResult = 0) and (ExitStatus = 0)) then begin
@@ -276,10 +281,53 @@ procedure Recompile();
    end; // Recompile()
 
 
+// ***********************************************************************
+// * Usage() - Prints a usage message
+// ***********************************************************************
+
+procedure Usage();
+   begin
+      writeln( 'recompile_pas walks the directory tree from the current directory and attempts');
+      writeln( 'to compile each .pas file it finds.  It keeps track of those that failed and ');
+      writeln( 'circles back to retry them after one complete pass.  It contiues to circle');
+      writeln( 'up to 3 times if any files fail to compile. By default it compiles debug');
+      writeln( 'version of each module or program.  Entering the command line parameter ''-r'' or');
+      writeln( '--release caused release versions instead.');
+      writeln();
+      writeln( 'Usage:');
+      writeln( '   recompile_pas [-r | --release]');
+      writeln();
+      writeln( 'Parameters:');
+      writeln( '  -r, --release   Compile a ''release'' version of the module or program.');
+      writeln(); 
+      writeln();      
+   end; // Usage()
+
+
+// ***********************************************************************
+// * InitiatizeVars() - Looks for the 'release' CLI Parameter and returns 
+// *                    true if one is found or if no parameter is entered.
+// ***********************************************************************
+
+function InitializeVars(): boolean;
+   begin
+      result:= true;
+      if( ParamCount = 0) then exit;
+      if( ParamCount = 1) then begin
+         ReleaseVer:= ((ParamStr( 1) = '--release') or
+                       (ParamStr( 1) = '-release') or
+                       (ParamStr( 1) = '-r'));
+         if( ReleaseVer) then exit;
+      end;
+      result:= false;
+      Usage();
+   end; // InitializeVars()
+
+
 // ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
-   Recompile();
+   if( InitializeVars()) then Recompile();
 end.  // recompile_pas
