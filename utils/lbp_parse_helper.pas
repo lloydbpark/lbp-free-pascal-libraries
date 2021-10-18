@@ -127,6 +127,7 @@ type
          procedure   Init(); virtual;
          procedure   InitS(); virtual;
          procedure   ParseAddChr( C: char); virtual;
+         procedure   RemoveBom(); // Remove the Byte Order Mark for unicode
       public
          function    PeekChr(): char; virtual;
          function    GetChr(): char; virtual;
@@ -215,7 +216,7 @@ destructor tChrSource.Destroy();
 
 procedure tChrSource.Init();
    begin
-      UngetQ:= tCharList.Create( 4, 'UngetQ');
+      UngetQ:= tCharList.Create( 8, 'UngetQ');
 
       ChrBuffLen:= Stream.Read( ChrBuff, ParserBufferSize);
       ChrBuffPos:= 0;
@@ -223,6 +224,7 @@ procedure tChrSource.Init();
          MyPosition:= 0;
          MyIndent:= '';
       {$endif}
+//      RemoveBom(); // Remove unicode Byte Order Marker if it exists.
    end; // Init()
 
 
@@ -239,7 +241,7 @@ procedure tChrSource.InitS();
 
 
 // ************************************************************************
-// * AddChr() - Add a character to S and resize as needed.
+// * ParseAddChr() - Add a character to S and resize as needed.
 // ************************************************************************
 
 procedure tChrSource.ParseAddChr( C: char);
@@ -254,6 +256,48 @@ procedure tChrSource.ParseAddChr( C: char);
    end; // ParseAddChar()
 
 
+// ************************************************************************
+// * RemoveBom() - Remove the optional byte order mark for unicode from the
+// *               front of the file.  Because this code currently expects
+// *               the file to contain ASCII or ANSI characters an exception
+// *               is raised for anything other than the utf-8 BOM.
+// ************************************************************************
+{$WARNING This proceedure isn't working.  The order of characters gets messed up somehow}
+procedure tChrSource.RemoveBom();
+   var
+      // Byte Order Mark strings (Unicode standard)
+      BomUtf8:    string = char( $ef) + char( $bb) + char( $bf);
+      BomUtf16BE: string = char( $fe) + char( $ff);
+      BomUtf16LE: string = char( $ff) + char( $fe);
+      BomUtf32BE: string = char( $00) + char( $00) + char( $fe) + char( $ff);
+      BomUtf32LE: string = char( $ff) + char( $fe) + char( $00) + char( $00);
+      S2:  string;
+      S3:  string;
+      S4:  string = '    ';
+      i:   integer;
+   begin
+      // Get possible BOMs
+      for i:= 1 to 4 do S4[ i]:= Chr;
+      S3:= Copy( S4, 1, 3);
+      S2:= Copy( S4, 1, 2);
+      // writeln( 'S2 = ', S2);
+      // writeln( 'S3 = ', S3);
+      // writeln( 'S4 = ', S4);
+      if( S3 = BomUtf8) then begin
+         UngetChr( S4[ 4]);
+      end else if( (S2 = BomUtf16BE) or (S2 = BomUtf16LE)) then begin
+         raise ParseException.Create( 'The imput is in UTF-16 format and this program expects UTF-8 or ASCII!');
+      end else if( (S4 = BomUtf32BE) or (S4 = BomUtf32LE)) then begin
+         raise ParseException.Create( 'The imput is in UTF-32 format and this program expects UTF-8 or ASCII!');
+      end else begin
+         for i:= 1 to 4 do UngetChr( S4[ i]);
+      end;
+      // for i:= 1 to 8 do write( GetChr());
+      // writeln;
+      // writeln;
+   end; // RemoveBom()
+
+
 // *************************************************************************
 // * PeekChr() - Returns the next char in the stream
 // *************************************************************************
@@ -262,10 +306,8 @@ function tChrSource.PeekChr(): char;
    begin
       result:= EOFchr;
       if( not UngetQ.IsEmpty()) then begin
-         UngetQ.StartEnumeration();
-         if( UngetQ.Next()) then begin
-            result:= UngetQ.GetCurrent();
-         end;
+         result:= UngetQ.Queue;
+         UngetQ.Head:= result; // Put it back
       end else begin
          if( ChrBuffPos = ChrBuffLen) then begin
             // Read another block into the buffer
