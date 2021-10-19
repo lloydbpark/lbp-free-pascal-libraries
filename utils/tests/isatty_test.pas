@@ -23,15 +23,24 @@ function IsATTY( Handle: Longint): Boolean;
       result:= (TCGetAttr( Handle, t) = 0);
    end;
 {$else} // Windows version
-function IsATTY( Handle: Longint): Boolean;
+function IsATTY( Handle: Word64): Boolean;
    var
       FileType: dword;
+      WinHandle: Word64;
    begin
+      writeln( '_isatty = ', _isatty( 0));
+      WinHandle:= GetStdHandle( Handle);
+      writeln( 'Handle    = ', Handle);
+      writeln( 'WinHandle = ', WinHandle);
+      WinHandle:= 0;
       FileType:= GetFileType( Handle);
+      writeln( 'FileType = ', FileType);
       result:= not (FileType = FILE_TYPE_PIPE);
    end;
 {$endif}
 
+// 4294967286
+// 2147483647
 
 // ************************************************************************
 // * main()
