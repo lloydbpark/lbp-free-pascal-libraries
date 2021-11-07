@@ -47,9 +47,9 @@ uses
 {$ifdef UNIX}
    baseunix,
    termio,   // isatty()
-{$else}
-   jwawinbase,
-//    windowns,  // In order to fake isatty()
+{$endif}
+{$ifdef WINDOWS}
+   jwawinbase, // GetFileType()
 {$endif}
    classes, // tHandleStream
    lbp_argv;
@@ -65,7 +65,7 @@ var
 
 // ************************************************************************
 
-function  IsATTY( Handle: longint): boolean;
+function  IsATty( var TextFile: Text): boolean;
 function  InputAvailable(): boolean;
 procedure SetInputFileParam( Required: boolean = true;  // must have an input file or pipe
                              UseF: boolean = true;     // Add '-f' as an aliase paramater
@@ -85,9 +85,15 @@ var
    Available:   boolean = false;
    IsRequired:  boolean = true;   // Set this to false if the Input file is optional
    DoNotOpen:   boolean = false;
+
 {$ifdef WINDOWS}
-   WinPipe:     boolean = false;  // Set to true to enable an input pipe  
-{$endif}        
+const
+   File_TYPE_UNKNONWN = $0000;
+   FILE_TYPE_DISK     = $0001;
+   FILE_TYPE_CHAR     = $0002;
+   FILE_TYPE_PIPE     = $0003;
+   FILE_TYPE_REMOTE   = $8000; // unused
+{$endif WINDOWS}
 
 // ************************************************************************
 // * IsATTY() - Returns true if the passed file handle is a terminal as
@@ -95,21 +101,30 @@ var
 // ************************************************************************
 
 {$ifdef UNIX}
-function IsATTY( Handle: Longint): Boolean;
+function IsATTY( var TextFile: Text): Boolean;
    var
       t : Termios;
+      h:  THandle;
    begin
-      result:= (TCGetAttr( Handle, t) = 0);
+      h:= TextRec( TextFile).Handle;
+      result:= (TCGetAttr( h, t) = 0);
    end;
-{$else} // Windows version
-function IsATTY( Handle: Longint): Boolean;
+{$endif UNIX}
+{$ifdef WINDOWS}
+function IsATTY( var TextFile: Text): Boolean;
    var
-      FileInfo: tByHandleFileInformation;
+      H: THandle;
+      FT: word32; // FileType 
    begin
-      result:= not GetFileInformationByHandle( Handle, FileInfo);
-      writeln( 'IsATTY() = ', result);
+      H:= TextRec( TextFile).Handle;
+      FT:= GetFileType( H);
+      if( (FT >= FILE_TYPE_DISK) and (FT <= FILE_TYPE_PIPE)) then begin
+         result:= (FT = FILE_TYPE_CHAR);
+      end else begin
+         raise lbp_exception.Create( 'An error occured getting the file type of the passed file handle!');
+      end;
    end;
-{$endif}
+{$endif WINDOWS}
 
 
 // ************************************************************************
@@ -137,17 +152,12 @@ procedure SetInputFileParam( Required: boolean;
                              DoOpen:   boolean);
    var
      Usage: string = 'The optional input file name.';
-     PipeUsage: string = 'Allow the input to come from a pipe' +
-                LineEnding + '                                 on Windows Systems';
    begin
       DoNotOpen:= not DoOpen;
       IsRequired:= Required;
       if( Required) then begin
          Usage:= 'The input file name.  This parameter or a pipe' +
                  LineEnding + '                                 is required';
-{$ifdef WINDOWS}
-         WinPipe:= true;
-{$endif}
       end;
       if( AsOption) then begin
          AddUsage( '   ========== Input File library ==========');
@@ -157,34 +167,14 @@ procedure SetInputFileParam( Required: boolean;
          end;
          if( UseF) then begin
             AddParam( ['f','input-file'], true, '', Usage);
-{$ifdef WINDOWS}
-            if( not Required) then begin
-               AddParam( ['w','winpipe'], false, '', PipeUsage);
-            end;
-{$endif}
          end else begin
             AddParam( ['input-file'], true, '', Usage);
-{$ifdef WINDOWS}
-            if( not Required) then begin
-               AddParam( ['winpipe'], false, '', PipeUsage);
-            end;
-{$endif}
          end;
       end else begin
          if( useF) then begin
             InsertParam( ['f','input-file'], true, '', Usage);
-{$ifdef WINDOWS}
-            if( not Required) then begin
-               InsertParam( ['w','winpipe'], false, '', PipeUsage);
-            end;
-{$endif}
          end else begin
             InsertParam( ['input-file'], true, '', Usage);
-{$ifdef WINDOWS}
-            if( not Required) then begin
-               InsertParam( ['winpipe'], false, '', PipeUsage);
-            end;
-{$endif}
          end;
       end;
    end; // SetInputFileParam()
@@ -205,9 +195,6 @@ procedure ParseArgv();
    begin
       if( lbp_types.show_init) then writeln( 'lbp_input_file.ParseArgV:  begin');
 
-{$ifdef WINDOWS}
-      if( not IsRequired) then WinPipe:= ParamSet( 'winpipe');
-{$endif}
       if( ParamSet( 'input-file')) then begin
          if( not DoNotOpen) then begin
             FileName:= GetParam( 'input-file');
@@ -216,19 +203,11 @@ procedure ParseArgv();
             Opened:= true;
             Available:= true;
          end;
-{$ifdef UNIX}
       // Do we read from the input pipe?
-      end else if( (not IsATTY( 0)) and (not DoNotOpen)) then begin
+      end else if( (not IsATTY( INPUT)) and (not DoNotOpen)) then begin
          InputFile:= Input;
          Available:= true;
       end else if( IsRequired) then begin
-{$endif}
-{$ifdef WINDOWS}
-      end else if( WinPipe and (not DoNotOpen)) then begin
-         InputFile:= Input;
-         Available:= true;
-      end else if( IsRequired) then begin
-{$endif}
          lbp_argv.Usage( true, 'No input file was specified and no input from a pipe is available!');
       end;
       // Get the UNIX or windows file handle of InputFile
