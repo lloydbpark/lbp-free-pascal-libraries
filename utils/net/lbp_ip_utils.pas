@@ -57,7 +57,7 @@ uses
 // IP address conversion
 function IPWord32ToString( const X: Word32; const Dot: char = '.'): string;
 function IPWord32ToPaddedString( const X: Word32; const Dot: char = '.'): string;
-function IPStringToWord32( const S: string): Word32;
+function IPStringToWord32( const S: string;  const Robust: boolean = False): Word32;
 function NetmaskToPrefix( NetMask: Word32): Word8;
 function PrefixToNetMask( Prefix: Word8): Word32;
 
@@ -187,7 +187,7 @@ function IPWord32ToPaddedString( const X: Word32; const Dot: char = '.'): string
 // *                       address to a Word32 (in host order).
 // ************************************************************************
 
-function IPStringToWord32( const S: string): Word32;
+function IPStringToWord32( const S: string;  const Robust: boolean = False): Word32;
    var
       Temp:        Word32ByteArray;
       iByte:       smallint; // index into Temp.ByteValue

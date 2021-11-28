@@ -61,7 +61,7 @@ uses
 // ************************************************************************
 
 type
-   tCharList = specialize tgList< char>;
+   tCharList = specialize tgDoubleLinkedList< char>;
    tCharSet = set of char;
    ParseException = class( lbp_exception);
 const
@@ -134,6 +134,8 @@ type
          procedure   UngetChr( C: char); virtual;
          function    ParseElement( var AllowedChrs: tCharSet): string; virtual;
          function    SkipText( iText: string): boolean;  // true if matched text was found and skipped
+         function    SkipTo( iC: Char): boolean; // True if the passed character was found
+         function    SkipTo( ChrSet: tCharSet): boolean; // True if one of ChrSet was found  
          function    ReadLn(): string;
          procedure   SkipEOL();  // Skip one End of Line.  Does nothing if we aren't at an EndOfLine
          property    Chr: char read GetChr write UngetChr;
@@ -216,7 +218,7 @@ destructor tChrSource.Destroy();
 
 procedure tChrSource.Init();
    begin
-      UngetQ:= tCharList.Create( 8, 'UngetQ');
+      UngetQ:= tCharList.Create( 'UngetQ');
 
       ChrBuffLen:= Stream.Read( ChrBuff, ParserBufferSize);
       ChrBuffPos:= 0;
@@ -224,7 +226,7 @@ procedure tChrSource.Init();
          MyPosition:= 0;
          MyIndent:= '';
       {$endif}
-//      RemoveBom(); // Remove unicode Byte Order Marker if it exists.
+      RemoveBom(); // Remove unicode Byte Order Marker if it exists.
    end; // Init()
 
 
@@ -260,9 +262,10 @@ procedure tChrSource.ParseAddChr( C: char);
 // * RemoveBom() - Remove the optional byte order mark for unicode from the
 // *               front of the file.  Because this code currently expects
 // *               the file to contain ASCII or ANSI characters an exception
-// *               is raised for anything other than the utf-8 BOM.
+// *               is raised for anything other than the utf-8 or utf-16be
+// *               BOM.
 // ************************************************************************
-{$WARNING This proceedure isn't working.  The order of characters gets messed up somehow}
+
 procedure tChrSource.RemoveBom();
    var
       // Byte Order Mark strings (Unicode standard)
@@ -271,30 +274,10 @@ procedure tChrSource.RemoveBom();
       BomUtf16LE: string = char( $ff) + char( $fe);
       BomUtf32BE: string = char( $00) + char( $00) + char( $fe) + char( $ff);
       BomUtf32LE: string = char( $ff) + char( $fe) + char( $00) + char( $00);
-      S2:  string;
-      S3:  string;
-      S4:  string = '    ';
-      i:   integer;
    begin
-      // Get possible BOMs
-      for i:= 1 to 4 do S4[ i]:= Chr;
-      S3:= Copy( S4, 1, 3);
-      S2:= Copy( S4, 1, 2);
-      // writeln( 'S2 = ', S2);
-      // writeln( 'S3 = ', S3);
-      // writeln( 'S4 = ', S4);
-      if( S3 = BomUtf8) then begin
-         UngetChr( S4[ 4]);
-      end else if( (S2 = BomUtf16BE) or (S2 = BomUtf16LE)) then begin
-         raise ParseException.Create( 'The imput is in UTF-16 format and this program expects UTF-8 or ASCII!');
-      end else if( (S4 = BomUtf32BE) or (S4 = BomUtf32LE)) then begin
-         raise ParseException.Create( 'The imput is in UTF-32 format and this program expects UTF-8 or ASCII!');
-      end else begin
-         for i:= 1 to 4 do UngetChr( S4[ i]);
-      end;
-      // for i:= 1 to 8 do write( GetChr());
-      // writeln;
-      // writeln;
+      if( SkipText( BomUtf32LE) or SkipText( BomUtf32BE) or 
+          SkipText( BomUtf16LE) or SkipText( BomUtf16BE) or
+          SkipText( BomUtf8)) then exit;
    end; // RemoveBom()
 
 
@@ -419,19 +402,71 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
 // ************************************************************************
 // * SkipText() - Returns true if the passed string exactly matches the 
 // *              next characters in the stream.  It skips characters 
-// *              until one doesn't match or if has found the entire string.
+// *              if a match isn't found it restores all the characters it 
+// *              previously read using UngetChr().
 // ************************************************************************
 
 function tChrSource.SkipText( iText: string): boolean;
    var
-      c: char;
+      A: char;
+      B: char;
+      i: integer;
+      j: integer;
+      L: integer; // Length of iText
    begin
       result:= false;
-      for c in iText do begin
-         if( not (c = GetChr)) then exit;
-      end;
+      L:= Length( iText);
+      for i:= 1 to L do begin
+         A:= iText[ i];
+         B:= GetChr;
+         if( A <> B) then begin
+            // Failed match!
+            L:= i - 1;
+            // Put back any characters we perviously matched
+            if( L > 0) then for j:= 1 to L do UngetQ.Enqueue:= iText[ j];
+            // Put back the character that resulted in the failure
+            UngetQ.Enqueue:= B;
+            exit;
+         end; // if mismatch
+      end; // for
       result:= true;
    end; // SkipText();
+
+
+// ************************************************************************
+// * SkipTo() - Skips forward until the passed character is found or until 
+// *            the last character is read.  Returns true if it was found
+// *            in which case that character will be pushed back into the
+// *            stream by calling UngetChr().
+// ************************************************************************
+
+function tChrSource.SkipTo( iC: char): boolean;
+   var
+      c: char;
+   begin
+      c:= GetChr;
+      while((c <> EOFChr) and (c <> iC)) do c:= GetChr;
+      UnGetChr( c);
+      result:= (c = iC);
+   end; // SkipTo();
+
+
+// ************************************************************************
+// * SkipTo() - Skips forward until one of the passed characters is found
+// *            or until  the last character is read.  Returns true if it 
+// *            was found in which case that character will be pushed back
+// *            into the stream by calling UngetChr().
+// ************************************************************************
+
+function tChrSource.SkipTo( ChrSet: TCharSet): boolean;
+   var
+      c: char;
+   begin
+      c:= GetChr;
+      while((c <> EOFChr) and (not (c in ChrSet))) do c:= GetChr;
+      UnGetChr( c);
+      result:= (c in ChrSet);
+   end; // SkipTo();
 
 
 // ************************************************************************

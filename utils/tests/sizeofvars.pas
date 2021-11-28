@@ -31,6 +31,9 @@ uses
 var
    TestSet: set of char;
 
+type
+   tWCharArray = array of wchar;
+
 begin
 
    writeln( '------- Some general tests ------');
@@ -66,6 +69,12 @@ begin
    writeln( 'Size of cuint      = ', SizeOf( cuint));
    writeln( 'Size of clong      = ', SizeOf( clong));
    writeln( 'Size of culong     = ', SizeOf( culong));
+   writeln;
+   writeln( '------ Addition temporary test ------');
+   writeln( 'Size of wchar[]    = ', SizeOf( tWCharArray));
+   writeln( 'Size of DWord      = ', SizeOf( DWord));
+   
+   
 //   writeln( 'Size of clonglong  = ', SizeOf( clonglong));
 //   writeln( 'Size of culonglong = ', SizeOf( culonglong));
    writeln;
