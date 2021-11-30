@@ -50,6 +50,7 @@ interface
 uses
    lbp_types,
    lbp_utils,
+   lbp_parse_helper,
    sysutils;
 
 // ************************************************************************
@@ -57,7 +58,7 @@ uses
 // IP address conversion
 function IPWord32ToString( const X: Word32; const Dot: char = '.'): string;
 function IPWord32ToPaddedString( const X: Word32; const Dot: char = '.'): string;
-function IPStringToWord32( const S: string;  const Robust: boolean = False): Word32;
+function IPStringToWord32( const S: string;  const RaiseException: boolean = True): Word32;
 function NetmaskToPrefix( NetMask: Word32): Word8;
 function PrefixToNetMask( Prefix: Word8): Word32;
 
@@ -183,90 +184,83 @@ function IPWord32ToPaddedString( const X: Word32; const Dot: char = '.'): string
 
 
 // ************************************************************************
-// * IPStringToWord32()  Convert the string representation of an IP
-// *                       address to a Word32 (in host order).
+// * IPStringToWord32()  Convert the string representation of an IP address
+// *                     to a Word32.  If RaiseException is false, zero is
+//*                      returned on error, otherwise an exception is
+// *                     raised.
 // ************************************************************************
 
-function IPStringToWord32( const S: string;  const Robust: boolean = False): Word32;
+function IPStringToWord32( const S: string;  const RaiseException: boolean = true): Word32;
    var
-      Temp:        Word32ByteArray;
-      iByte:       smallint; // index into Temp.ByteValue
-      iStr:        smallint; // index into S
-      Octet:       String[ 4];
-      iOctet:      smallint; // index into Octet
-      Found:       boolean;
-      ByteValue:   word32;
-      Code:        word;
-      StrLength:   word;
+      ChrSource:  tChrSource;
+      CurrentChr: char;
+      OctetCount: integer;
+      IpWord32:   word32;
+      OctetStr:   string;
+      L:          integer; // Length of OctetStr
+      OctetValue: word32;
+      Found:      boolean = false;
+
+   // ---------------------------------------------------------------------
+   // - ParseOctet
+   // ---------------------------------------------------------------------
+   function ParseOctet(): boolean;
+      begin
+         result:= false;
+         OctetStr:= ChrSource.ParseElement( NumChrs);
+         L:= Length( OctetStr);
+         CurrentChr:= ChrSource.PeekChr;
+         if( (L > 3) or (L = 0)) then exit;
+         OctetValue:= Word32( OctetStr.ToInteger);
+         if( OctetValue > 255) then exit;
+         IpWord32:= (IPWord32 SHL 8) + OctetValue;
+         inc( OctetCount);
+         
+         result:= true;
+      end; // ParseOctet;
+   // ---------------------------------------------------------------------
+
    begin
-      iByte:= 3;
-      iOctet:= 0;
-      Found:= false;
-      StrLength:= Length( S);
+      ChrSource:= tChrSource.Create( S);
+      CurrentChr:= ChrSource.PeekChr;
+      while( not (Found or (Currentchr = EOFchr))) do begin
+         // Skip to the first numeric character
+         ChrSource.SkipTo( NumChrs);
+         
+         // First octet
+         OctetCount:= 0;
+         IpWord32:= 0;
+         if( not ParseOctet) then continue;
 
-      // for each character is S
-      for iStr:= 1 to StrLength do begin
+         // Second octet
+         CurrentChr:= ChrSource.GetChr;
+         if( CurrentChr <> '.') then continue;
+         if( not ParseOctet) then continue;
 
-         // Handle 0 to 9
-         if( (S[ iStr] >= '0') and (S[ iStr] <= '9')) then begin
-            inc( iOctet);
-            if( iOctet > 3) then begin
-               raise IPConversionException.Create(
-                 S + ': Each octet in an IP address must be 1 to 3 characters long!');
-            end;
-            Octet[ iOctet]:= S[ iStr];
-            if( iStr = StrLength) then begin
-               Found:= true;
-            end;
+         // Third octet
+         CurrentChr:= ChrSource.GetChr;
+         if( CurrentChr <> '.') then continue;
+         if( not ParseOctet) then continue;
 
-         // Handle the dot between octets.
-         end else if( S[ iStr] = '.' ) then begin
-            Found:= true;
-         // Any other character is an error!
-         end else begin
-            raise IPConversionException.Create(
-              S + ': An IP address can only contain ''0''-''9'' and ''.''!');
-         end; // else S[ iStr] <> '.'
+         // Fourth octet
+         CurrentChr:= ChrSource.GetChr;
+         if( CurrentChr <> '.') then continue;
+         ParseOctet;
 
-         // Have we found an octet?
-         if( Found) then begin
+         Found:= (OctetCount = 4);
+      end; // while not found
+      ChrSource.Destroy;
 
-            // Make sure we got 1 to 3 characters
-            if( iOctet < 1) then begin
-               raise IPConversionException.Create(
-                 S + ': Each octet in an IP address must be 1 to 3 characters long!');
-            end;
-
-            // Make sure we haven't gotten too many octets
-            if( iByte < 0) then begin
-               raise IPConversionException.Create(
-                  S + ': An IP address must contain 4 octets!');
-            end;
-
-            SetLength( Octet, iOctet);
-            // Convert the Octet to a byte
-            val( Octet, ByteValue, Code);
-            if( (Code > 0) or (ByteValue > 255)) then begin
-               raise IPConversionException.Create(
-                 S + ': Each octet in an IP address must be between 0 and 255!');
-            end;
-
-            Temp.ByteValue[ iByte]:= word8( ByteValue);
-
-            Found:= false;
-            dec( iByte);
-            iOctet:= 0;
-         end; // if we found an octet
-
-      end; // for each character in S
-
-      if( iByte >= 0) then begin
-         raise IPConversionException.Create(
-            S + ': An IP address must contain 4 octets!');
+      // Check to make sure our results are valid
+      if( OctetCount <> 4) then begin
+         if( RaiseException) then begin
+            raise IPConversionException.Create( '''%S'' does not contain a valid IP address!', [S]);
+         end;
+         IpWord32:= 0;
       end;
 
-      IPStringToWord32:= Temp.Word32Value;
-   end; // IPStringToWord32()
+      result:= IpWord32;
+   end; // IPStringToWord32()   
 
 
 // *************************************************************************
