@@ -57,20 +57,24 @@ uses
 
 
 // *************************************************************************
-// * tCsvFixZeroFilter()
+// * tCsvExtractIPv4()
 // *************************************************************************
 
 type
-   tCsvFixZeroFilter = class( tCsvFilter)
-      private
-         Fields:       tCsvCellArray; 
-         Indexes:      Array of integer;
-         FieldLength:  integer; 
+   tCsvExtractIPv4Filter = class( tCsvFilter)
+      protected
+         HeaderSent: boolean;
+         iCellName:  string;
+         oCellName:  string;
+         iIndex:     integer;
+         oIndex:     integer;
+         IndexMap:   tIntegerArray;
+         NewLength:  integer;
       public
-         constructor Create( iFieldCsv: string);
+         constructor Create( InputCellName: string; OutputCellName: string = '');
          procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
-      end; // tCsvFixZeroFilter
+      end; // tCsvExtractIPv4Filter
 
 
 // *************************************************************************
@@ -78,19 +82,23 @@ type
 implementation
 
 // ========================================================================
-// = tCsvFixZeroFilter class - Replace any zero's in the passed iFieldCSV
-// =                   cells with the empty string.
+// = tCsvExtractIPv4Filter class - Finds the IPv4 address in the input cell,
+// =                         extracts it, and saves it in the output cell.
+// =                         if OutputCellName contains an empty string
+// =                         then the the extracted value is saved in the
+// =                         input cell instead.
 // ========================================================================
 // *************************************************************************
 // * Create() - constructor
 // *************************************************************************
 
-constructor tCsvFixZeroFilter.Create( iFieldCsv: string);
+constructor tCsvExtractIPv4Filter.Create( InputCellName:  string; 
+                                    OutputCellName: string = '');
    begin
       inherited Create();
-      Fields:= StringToCsvCellArray( iFieldCsv);
-      FieldLength:= Length( Fields);
-      SetLength( Indexes, FieldLength);
+      iCellName:= InputCellName;
+      oCellName:= OutputCellName;
+      HeaderSent:= false;
    end; // Create() 
 
 
@@ -98,41 +106,51 @@ constructor tCsvFixZeroFilter.Create( iFieldCsv: string);
 // * SetInputHeader()
 // *************************************************************************
 
-procedure tCsvFixZeroFilter.SetInputHeader( Header: tCsvCellArray);
-   var 
-      HL:       integer; // Header Length
-      HI:       integer; // Header index
-      FI:       integer; // Fields index;
-      Found:    boolean;
-      ErrorMsg: string;
+procedure tCsvExtractIPv4Filter.SetInputHeader( Header: tCsvCellArray);
+      var
+      HeaderDict: tHeaderDict;
+      Name:       string;
+      i:          integer;
+      iMax:       integer;
+      ErrorMsg:   string;
+      NewHeader:  tCsvCellArray;
    begin
-      // If an empty Fields was passed to Create(), then we use all the fields
-      HL:=  Length( Header);
+      // Create and populate the temorary lookup tree
+      if( oCellName = '') then begin
+         oCellName:= iCellName;
+      end;
+      HeaderDict:= tHeaderDict.Create( tHeaderDict.tCompareFunction( @CompareStrings));
+      HeaderDict.AllowDuplicates:= false;
+      iMax:= Length( Header) - 1;
+      for i:= 0 to iMax do HeaderDict.Add( Header[ i], i);
 
-      // For each  Field
-      FI:= 0;
-      while( FI < FieldLength) do begin
-         HI:= 0;
-         Found:= false;
-  
-         // for each Header
-         while( (not found) and (HI < HL)) do begin
-            if( Header[ HI] = Fields[ FI]) then begin
-               Found:= true;
-               Indexes[ FI]:= HI;
+      // Create and populate the IndexMap;
+      iMax:= NewLength - 1;
+      SetLength( IndexMap, NewLength);
+      for i:= 0 to iMax do begin
+         Name:= NewHeader[ i];
+         // Is the new header field in the old headers?
+         if( HeaderDict.Find( Name)) then begin
+            IndexMap[ i]:= HeaderDict.Value();
+         end else begin
+            if( AllowNew) then begin
+               IndexMap[ i]:= -1; 
+            end else begin
+               ErrorMsg:= sysutils.Format( HeaderUnknownField, [Name]);
+               lbp_argv.Usage( true, ErrorMsg);
             end;
-            inc( HI);
-         end; // while Header
-  
-         if( not Found) then begin
-            ErrorMsg:= Format( HeaderUnknownField, [Fields[ FI]]);
-            lbp_argv.Usage( true, ErrorMsg);
-         end;
+         end; // if/else New Header field was found in the on header 
+      end; // for
 
-         inc( FI);  
-      end; // while Fields
-
-      NextFilter.SetInputHeader( Header);
+      // Clean up the HeaderDict
+      HeaderDict.RemoveAll();
+      HeaderDict.Destroy();
+ 
+      // Pass the new header to the next filter
+      if( not HeaderSent) then begin
+         NextFilter.SetInputHeader( NewHeader);
+         HeaderSent:= true;
+      end;
    end; // SetInputHeader
 
 
@@ -140,16 +158,21 @@ procedure tCsvFixZeroFilter.SetInputHeader( Header: tCsvCellArray);
 // * SetRow() - Add the row to the tree
 // *************************************************************************
 
-procedure tCsvFixZeroFilter.SetRow( Row: tCsvCellArray);
+procedure tCsvExtractIPv4Filter.SetRow( Row: tCsvCellArray);
    var
-      i:      integer;
+      NewRow: tCsvCellArray;
       iMax:   integer;
-      iCell:  integer;
+      iOld:   integer;
+      iNew:   integer;
    begin
-      // For each cell we need to check
-      for i in Indexes do if( Row[ i] = '0') then Row[ i]:= '';
-      
-      NextFilter.SetRow( Row);
+      SetLength( NewRow, NewLength);
+      // Trasfer fields from Row to NewRow;
+      iMax:= NewLength - 1;
+      for iNew:= 0 to iMax do begin
+         iOld:= IndexMap[ iNew];
+         if( iOld < 0) then NewRow[ iNew]:= '' else NewRow[ iNew]:= Row[ iOld];
+      end;
+      NextFilter.SetRow( NewRow);
    end; // SetRow();
 
 
