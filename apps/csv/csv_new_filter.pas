@@ -66,8 +66,8 @@ type
          HeaderSent: boolean;
          iCellName:  string;
          oCellName:  string;
-         iIndex:     integer;
-         oIndex:     integer;
+         iCellIndex: integer; // Index to the input cell
+         oCellIndex: integer; // Index to the output cell
          IndexMap:   tIntegerArray;
          NewLength:  integer;
       public
@@ -96,8 +96,10 @@ constructor tCsvExtractIPv4Filter.Create( InputCellName:  string;
                                     OutputCellName: string = '');
    begin
       inherited Create();
-      iCellName:= InputCellName;
-      oCellName:= OutputCellName;
+      iCellName:=  InputCellName;
+      oCellName:=  OutputCellName;
+      iCellIndex:= -1;
+      oCellIndex:= -1;
       HeaderSent:= false;
    end; // Create() 
 
@@ -108,44 +110,52 @@ constructor tCsvExtractIPv4Filter.Create( InputCellName:  string;
 
 procedure tCsvExtractIPv4Filter.SetInputHeader( Header: tCsvCellArray);
       var
-      HeaderDict: tHeaderDict;
-      Name:       string;
       i:          integer;
       iMax:       integer;
-      ErrorMsg:   string;
+      j:          integer;
+      L:          integer; // length of one of the headers
       NewHeader:  tCsvCellArray;
+      AddCol:     boolean;
+      FoundIn:    boolean = false; // True when we found the input header name
    begin
-      // Create and populate the temorary lookup tree
-      if( oCellName = '') then begin
+      L:= Length( Header);
+      SetLength( IndexMap, L);
+      AddCol:= (Length( oCellName) > 0);
+      if( AddCol) then begin
+         NewLength:= L + 1;
+      end else begin
          oCellName:= iCellName;
+         NewLength:= L;
       end;
-      HeaderDict:= tHeaderDict.Create( tHeaderDict.tCompareFunction( @CompareStrings));
-      HeaderDict.AllowDuplicates:= false;
-      iMax:= Length( Header) - 1;
-      for i:= 0 to iMax do HeaderDict.Add( Header[ i], i);
+      SetLength( NewHeader, NewLength);
 
-      // Create and populate the IndexMap;
-      iMax:= NewLength - 1;
-      SetLength( IndexMap, NewLength);
-      for i:= 0 to iMax do begin
-         Name:= NewHeader[ i];
-         // Is the new header field in the old headers?
-         if( HeaderDict.Find( Name)) then begin
-            IndexMap[ i]:= HeaderDict.Value();
-         end else begin
-            if( AllowNew) then begin
-               IndexMap[ i]:= -1; 
-            end else begin
-               ErrorMsg:= sysutils.Format( HeaderUnknownField, [Name]);
-               lbp_argv.Usage( true, ErrorMsg);
+      // Copy the column names to the new header
+      i:= 0; 
+      j:= 0;
+      iMax:= L - 1;
+      while( i <= iMax) do begin
+         if( AddCol and (Header[ i] = oCellName)) then begin
+            raise tCsvException.Create( 'The input header column name already exists!');
+         end;
+         NewHeader[ j]:= Header[ i];
+         IndexMap[ i]:= j;
+         if( (not FoundIn) and (Header[ i] = iCellName)) then begin
+            FoundIn:= true;
+            iCellIndex:= i;
+            if( AddCol) then begin
+               inc( j);
+               NewHeader[ j]:= oCellName;
             end;
-         end; // if/else New Header field was found in the on header 
-      end; // for
+            oCellIndex:= j;
+         end;
+         inc( i);
+         inc( j);
+      end; // while
 
-      // Clean up the HeaderDict
-      HeaderDict.RemoveAll();
-      HeaderDict.Destroy();
- 
+      if( not FoundIn) then begin
+         raise tCsvException.Create( 'The passed header name was not found in the CSV''s headers!');
+      end;
+
       // Pass the new header to the next filter
       if( not HeaderSent) then begin
          NextFilter.SetInputHeader( NewHeader);
@@ -167,10 +177,11 @@ procedure tCsvExtractIPv4Filter.SetRow( Row: tCsvCellArray);
    begin
       SetLength( NewRow, NewLength);
       // Trasfer fields from Row to NewRow;
-      iMax:= NewLength - 1;
-      for iNew:= 0 to iMax do begin
-         iOld:= IndexMap[ iNew];
-         if( iOld < 0) then NewRow[ iNew]:= '' else NewRow[ iNew]:= Row[ iOld];
+      iMax:= Length( Row) - 1;
+      for iOld:= 0 to iMax do begin
+         iNew:= IndexMap[ iOld];
+         NewRow[ iNew]:= Row[ iOld];
+         NewRow[ oCellIndex]:= IPWord32ToString(IPStringToWord32( Row[ iCellIndex]));
       end;
       NextFilter.SetRow( NewRow);
    end; // SetRow();

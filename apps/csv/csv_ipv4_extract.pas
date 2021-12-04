@@ -47,7 +47,6 @@ uses
    lbp_types,
    lbp_csv,
    lbp_csv_filter,
-   csv_new_filter, // Temporary until I have the working extractor filter working. 
    lbp_csv_io_filters;
 
 
