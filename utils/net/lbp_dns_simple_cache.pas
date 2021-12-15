@@ -229,6 +229,8 @@ constructor tDnsSimpleCache.Create();
       ByNameNfTree.Name:=   'Unresolved DNS queries sorted by Host Name';
       ByIpAddrTree.Name:=   'Resolved DNS queries sorted by IP Address';
       ByIpAddrNfTree.Name:= 'Unesolved DNS queries sorted by IP Address';
+
+      HostResolver:= tHostResolver.Create( nil);
    end; // Create()
 
 
@@ -290,30 +292,106 @@ function tDnsSimpleCache.Lookup( NameOrIp: string): string;
 
 
 // *************************************************************************
-// * Lookup() - Do a DNS forward or reverse DNS lookup depending on the 
-// *            contents of NameOrIp.
+// * ForwardLookup() - Do a DNS forward (Name to IP Address) lookup.
 // *************************************************************************
 
 function tDnsSimpleCache.ForwardLookup( Name: string): word32;
+   var
+      IpStr: string;
    begin
+      writeln( 'tDnsSimpleCache.ForwardLookup( ', Name,')');
       TestTuple.Name:= Name;
       TestTuple.IpW32:= 0;
 
+      // Do we have this in the positive cache?
+      if( ByNameTree.Find( TestTuple)) then begin
+         writeln( '   Found in the positive cache.');
+         Result:= ByNameTree.Value().IpW32;
+         exit;
+      end;
+
+      // Do we hav it in the negative cache?
+      if( ByNameNfTree.Find( TestTuple)) then begin
+         writeln( '   Found in the negative cache.');
+         Result:= ByNameNfTree.Value().IpW32;
+         exit;
+      end;
+
+      // Attempt the DNS lookup
+      HostResolver.ClearData();
+      writeln( '   Attempting to resolve.');
+      if( HostResolver.NameLookup( Name)) then begin
+         IpStr:= HostResolver.AddressAsString;
+         TestTuple.IpW32:= IpStringToWord32( IpStr);
+         ByNameTree.Add( TestTuple);
+         Result:= TestTuple.IpW32;
+         Writeln( '   Resolved OK.');
+      end else begin
+         ByNameNfTree.Add( TestTuple);
+         Result:= 0;
+         writeln( '   Failed to resolve.');
+      end;
+      TupleList.Queue:= TestTuple;
       
-
-
-      result:= 0;
+      // We used TestTuple, so we need to create a new one.
+      TestTuple:= tDnsTuple.Create();
    end; // ForwardLookup()
 
 
 // *************************************************************************
-// * Lookup() - Do a DNS forward or reverse DNS lookup depending on the 
-// *            contents of NameOrIp.
+// * ReverseLookup() - Do a DNS reverse (IP address to name) lookup
 // *************************************************************************
 
 function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
+   var
+      Name:   string;
+      IpStr:  string;
+      {$ifdef WINDOWS}
+      RevStr: string;
+      {$endif WINDOWS}
+      Found:  boolean;
    begin
-      result:= 'A host name';
+      IpStr:= IPWord32ToString( IpW32);
+      writeln( 'tDnsSimpleCache.ReverseLookup( ', IpStr,')');
+      TestTuple.Name:= 'not-resolved';
+      TestTuple.IpW32:= IpW32;
+
+      // Do we have this in the positive cache?
+      if( ByIpAddrTree.Find( TestTuple)) then begin
+         writeln( '   Found in the positive cache.');
+         Result:= ByIpAddrTree.Value().Name;
+         exit;
+      end;
+
+      // Do we hav it in the negative cache?
+      if( ByIpAddrNfTree.Find( TestTuple)) then begin
+         writeln( '   Found in the negative cache.');
+         Result:= ByIpAddrNfTree.Value().Name;
+         exit;
+      end;
+
+      // Attempt the DNS lookup
+      HostResolver.ClearData();
+      writeln( '   Attempting to resolve.');
+{$ifdef WINDOWS}
+      RevStr:= ReverseDottedOrder(IpStr);
+      Found:=  HostResolver.AddressLookup( RevIpStr);
+{$else WINDOWS}
+      Found:=  HostResolver.AddressLookup( IPStr);
+{$endif WINDOWS}
+      if( Found) then begin
+         TestTuple.Name:= HostResolver.ResolvedName;
+         ByIpAddrTree.Add( TestTuple);
+         Writeln( '   Resolved OK.');
+      end else begin
+         ByIpAddrNfTree.Add( TestTuple);
+         writeln( '   Failed to resolve.');
+      end;
+      result:= TestTuple.Name;
+      TupleList.Queue:= TestTuple;
+      
+      // We used TestTuple, so we need to create a new one.
+      TestTuple:= tDnsTuple.Create();
    end; // ReverseLookup()
 
 
@@ -330,7 +408,7 @@ procedure tDnsSimpleCache.DumpTree( Tree: tDnsTupleTree);
       writeln( '* ', Tree.Name);
       writeln( '*******************************************************************************');
       for T in Tree do begin
-         writeln( '   ', T.IpStr:18, T.Name);         
+         writeln( '   ', T.IpStr:18, '   ', T.Name);         
       end;
       writeln();
       writeln();
