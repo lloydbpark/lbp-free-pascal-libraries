@@ -106,7 +106,7 @@ type
          function    ForwardLookup( Name: string): word32;
          function    ReverseLookup( IpW32: word32): string;
       private
-         procedure   DumpTree( Tree: tDnsTupleTree);
+         // procedure   DumpTree( Tree: tDnsTupleTree);
       end; // tDnsSimpleCache class
 
 
@@ -243,10 +243,10 @@ destructor tDnsSimpleCache.Destroy();
       HostResolver.Destroy();
       TestTuple.Destroy();
 
-      DumpTree( ByNameTree);
-      DumpTree( ByIpAddrTree);
-      DumpTree( ByNameNfTree);
-      DumpTree( ByIpAddrNfTree);
+      // DumpTree( ByNameTree);
+      // DumpTree( ByIpAddrTree);
+      // DumpTree( ByNameNfTree);
+      // DumpTree( ByIpAddrNfTree);
       
       ByIpAddrNfTree.RemoveAll( False);
       ByIpAddrNfTree.Destroy();
@@ -299,37 +299,31 @@ function tDnsSimpleCache.ForwardLookup( Name: string): word32;
    var
       IpStr: string;
    begin
-      writeln( 'tDnsSimpleCache.ForwardLookup( ', Name,')');
       TestTuple.Name:= Name;
       TestTuple.IpW32:= 0;
 
       // Do we have this in the positive cache?
       if( ByNameTree.Find( TestTuple)) then begin
-         writeln( '   Found in the positive cache.');
          Result:= ByNameTree.Value().IpW32;
          exit;
       end;
 
       // Do we hav it in the negative cache?
       if( ByNameNfTree.Find( TestTuple)) then begin
-         writeln( '   Found in the negative cache.');
          Result:= ByNameNfTree.Value().IpW32;
          exit;
       end;
 
       // Attempt the DNS lookup
       HostResolver.ClearData();
-      writeln( '   Attempting to resolve.');
       if( HostResolver.NameLookup( Name)) then begin
          IpStr:= HostResolver.AddressAsString;
          TestTuple.IpW32:= IpStringToWord32( IpStr);
          ByNameTree.Add( TestTuple);
          Result:= TestTuple.IpW32;
-         Writeln( '   Resolved OK.');
       end else begin
          ByNameNfTree.Add( TestTuple);
          Result:= 0;
-         writeln( '   Failed to resolve.');
       end;
       TupleList.Queue:= TestTuple;
       
@@ -352,27 +346,23 @@ function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
       Found:  boolean;
    begin
       IpStr:= IPWord32ToString( IpW32);
-      writeln( 'tDnsSimpleCache.ReverseLookup( ', IpStr,')');
       TestTuple.Name:= 'not-resolved';
       TestTuple.IpW32:= IpW32;
 
       // Do we have this in the positive cache?
       if( ByIpAddrTree.Find( TestTuple)) then begin
-         writeln( '   Found in the positive cache.');
          Result:= ByIpAddrTree.Value().Name;
          exit;
       end;
 
       // Do we hav it in the negative cache?
       if( ByIpAddrNfTree.Find( TestTuple)) then begin
-         writeln( '   Found in the negative cache.');
          Result:= ByIpAddrNfTree.Value().Name;
          exit;
       end;
 
       // Attempt the DNS lookup
       HostResolver.ClearData();
-      writeln( '   Attempting to resolve.');
 {$ifdef WINDOWS}
       RevStr:= ReverseDottedOrder(IpStr);
       Found:=  HostResolver.AddressLookup( RevIpStr);
@@ -382,10 +372,8 @@ function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
       if( Found) then begin
          TestTuple.Name:= HostResolver.ResolvedName;
          ByIpAddrTree.Add( TestTuple);
-         Writeln( '   Resolved OK.');
       end else begin
          ByIpAddrNfTree.Add( TestTuple);
-         writeln( '   Failed to resolve.');
       end;
       result:= TestTuple.Name;
       TupleList.Queue:= TestTuple;
@@ -399,20 +387,20 @@ function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
 // * DumpTree() - Dump a tree for debugging purposes
 // *************************************************************************
 
-procedure tDnsSimpleCache.DumpTree( Tree: tDnsTupleTree);
-   var
-      T: tDnsTuple;
-   begin
-      writeln();
-      writeln( '*******************************************************************************');
-      writeln( '* ', Tree.Name);
-      writeln( '*******************************************************************************');
-      for T in Tree do begin
-         writeln( '   ', T.IpStr:18, '   ', T.Name);         
-      end;
-      writeln();
-      writeln();
-   end; // DumpTree()
+// procedure tDnsSimpleCache.DumpTree( Tree: tDnsTupleTree);
+//    var
+//       T: tDnsTuple;
+//    begin
+//       writeln();
+//       writeln( '*******************************************************************************');
+//       writeln( '* ', Tree.Name);
+//       writeln( '*******************************************************************************');
+//       for T in Tree do begin
+//          writeln( '   ', T.IpStr:18, '   ', T.Name);         
+//       end;
+//       writeln();
+//       writeln();
+//    end; // DumpTree()
 
 
 // *************************************************************************
