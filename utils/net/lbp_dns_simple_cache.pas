@@ -102,12 +102,26 @@ type
       public
          constructor Create();
          destructor  Destroy(); override;
+         // Results as a tDnsTuple
+         function    DnsTupleLookup( NameOrIp: string): tDnsTuple;
+         function    DnsTupleForwardLookup( Name: string): tDnsTuple;
+         function    DnsTupleReverseLookup( IpW32: word32): tDnsTuple;
+         // Results as their values
          function    Lookup( NameOrIp: string): string;
          function    ForwardLookup( Name: string): word32;
          function    ReverseLookup( IpW32: word32): string;
       private
          // procedure   DumpTree( Tree: tDnsTupleTree);
       end; // tDnsSimpleCache class
+
+
+
+// =========================================================================
+// = Global Vars 
+// =========================================================================
+
+var
+   DnsSimpleCache: tDnsSimpleCache;
 
 
 
@@ -268,34 +282,30 @@ destructor tDnsSimpleCache.Destroy();
 
 
 // *************************************************************************
-// * Lookup() - Do a DNS forward or reverse DNS lookup depending on the 
-// *            contents of NameOrIp.
+// * DnsTupleLookup() - Do a DNS forward or reverse DNS lookup depending on
+// *                    the contents of NameOrIp.
 // *************************************************************************
 
-function tDnsSimpleCache.Lookup( NameOrIp: string): string;
+function tDnsSimpleCache.DnsTupleLookup( NameOrIp: string): tDnsTuple;
    var
       IpW32: word32;
    begin
-      if( Length( NameOrIP) < 0) then begin
-         result:= 'unresolved';
-         exit;
-      end;
+      if( Length( NameOrIP) = 0) then NameOrIp:= 'unresolved';
 
       if( NameOrIp[ 1] in NumChrs) then begin
          IpW32:= IPStringToWord32( NameOrIp);
-         result:= ReverseLookup( IpW32);
+         result:= DnsTupleReverseLookup( IpW32);
       end else begin
-         IpW32:= ForwardLookup( NameorIp);
-         result:= IpWord32ToString( IpW32);
+         result:= DnsTupleForwardLookup( NameorIp);
       end;
-   end; // Lookup()
+   end; // DnsTupleLookup()
 
 
 // *************************************************************************
-// * ForwardLookup() - Do a DNS forward (Name to IP Address) lookup.
+// * DnsTupleForwardLookup() - Do a DNS forward (Name to IP Address) lookup.
 // *************************************************************************
 
-function tDnsSimpleCache.ForwardLookup( Name: string): word32;
+function tDnsSimpleCache.DnsTupleForwardLookup( Name: string): tDnsTuple;
    var
       IpStr: string;
    begin
@@ -304,13 +314,13 @@ function tDnsSimpleCache.ForwardLookup( Name: string): word32;
 
       // Do we have this in the positive cache?
       if( ByNameTree.Find( TestTuple)) then begin
-         Result:= ByNameTree.Value().IpW32;
+         Result:= ByNameTree.Value;
          exit;
       end;
 
       // Do we hav it in the negative cache?
       if( ByNameNfTree.Find( TestTuple)) then begin
-         Result:= ByNameNfTree.Value().IpW32;
+         Result:= ByNameNfTree.Value;
          exit;
       end;
 
@@ -320,23 +330,23 @@ function tDnsSimpleCache.ForwardLookup( Name: string): word32;
          IpStr:= HostResolver.AddressAsString;
          TestTuple.IpW32:= IpStringToWord32( IpStr);
          ByNameTree.Add( TestTuple);
-         Result:= TestTuple.IpW32;
+         Result:= TestTuple;
       end else begin
          ByNameNfTree.Add( TestTuple);
-         Result:= 0;
+         Result:= TestTuple;
       end;
       TupleList.Queue:= TestTuple;
       
       // We used TestTuple, so we need to create a new one.
       TestTuple:= tDnsTuple.Create();
-   end; // ForwardLookup()
+   end; // DnsTupleForwardLookup()
 
 
 // *************************************************************************
-// * ReverseLookup() - Do a DNS reverse (IP address to name) lookup
+// * DnsTupleReverseLookup() - Do a DNS reverse (IP address to name) lookup
 // *************************************************************************
 
-function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
+function tDnsSimpleCache.DnsTupleReverseLookup( IpW32: word32): tDnsTuple;
    var
       Name:   string;
       IpStr:  string;
@@ -351,13 +361,13 @@ function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
 
       // Do we have this in the positive cache?
       if( ByIpAddrTree.Find( TestTuple)) then begin
-         Result:= ByIpAddrTree.Value().Name;
+         Result:= ByIpAddrTree.Value;
          exit;
       end;
 
       // Do we hav it in the negative cache?
       if( ByIpAddrNfTree.Find( TestTuple)) then begin
-         Result:= ByIpAddrNfTree.Value().Name;
+         Result:= ByIpAddrNfTree.Value;
          exit;
       end;
 
@@ -375,11 +385,57 @@ function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
       end else begin
          ByIpAddrNfTree.Add( TestTuple);
       end;
-      result:= TestTuple.Name;
+      result:= TestTuple;
       TupleList.Queue:= TestTuple;
       
       // We used TestTuple, so we need to create a new one.
       TestTuple:= tDnsTuple.Create();
+   end; // DnsTupleReverseLookup()
+
+
+// *************************************************************************
+// * Lookup() - Do a DNS forward or reverse DNS lookup depending on the 
+// *            contents of NameOrIp.
+// *************************************************************************
+
+function tDnsSimpleCache.Lookup( NameOrIp: string): string;
+   var
+      IpW32:  word32;
+   begin
+      if( Length( NameOrIP) < 0) then NameOrIp:= 'unresolved';
+
+      if( NameOrIp[ 1] in NumChrs) then begin
+         IpW32:= IPStringToWord32( NameOrIp);
+         result:= DnsTupleReverseLookup( IpW32).Name;
+      end else begin
+         result:= DnsTupleForwardLookup( NameorIp).IpStr;
+      end;
+   end; // Lookup()
+
+
+// *************************************************************************
+// * ForwardLookup() - Do a DNS forward (Name to IP Address) lookup.
+// *************************************************************************
+
+function tDnsSimpleCache.ForwardLookup( Name: string): word32;
+   var
+      MyTuple: tDnsTuple;
+   begin
+      MyTuple:= DnsTupleForwardLookup( Name);
+      result:= MyTuple.IpW32;
+   end; // ForwardLookup()
+
+
+// *************************************************************************
+// * ReverseLookup() - Do a DNS reverse (IP address to name) lookup
+// *************************************************************************
+
+function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
+   var
+      MyTuple: tDnsTuple;
+   begin
+      MyTuple:= DnsTupleReverseLookup( IpW32);
+      result:= MyTuple.Name;
    end; // ReverseLookup()
 
 
@@ -401,6 +457,29 @@ function tDnsSimpleCache.ReverseLookup( IpW32: word32): string;
 //       writeln();
 //       writeln();
 //    end; // DumpTree()
+
+
+// =========================================================================
+// = Unit housekeeping
+// =========================================================================
+// *************************************************************************
+// * initialization
+// *************************************************************************
+
+initialization
+   begin
+      DnsSimpleCache:= tDnsSimpleCache.Create();
+   end; // initialization
+
+
+// *************************************************************************
+// * finalization
+// *************************************************************************
+
+finalization
+   begin
+      DnsSimpleCache.Destroy();
+   end; // finalization
 
 
 // *************************************************************************
