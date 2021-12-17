@@ -715,7 +715,7 @@ destructor tCsvOutputFileFilter.Destroy();
 
 procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvCellArray);
    begin
-      writeln( Output, Header.ToCsv(OutputDelimiter));
+      writeln( OutputFile, Header.ToCsv(OutputDelimiter));
    end; // SetInputHeader()
 
 
@@ -725,7 +725,7 @@ procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvCellArray);
 
 procedure tCsvOutputFileFilter.SetRow( Row: tCsvCellArray);
    begin
-     writeln( Output, Row.ToCsv( OutputDelimiter));
+     writeln( OutputFile, Row.ToCsv( OutputDelimiter));
    end; // SetRow()
 
 
