@@ -704,6 +704,7 @@ constructor tCsvOutputFileFilter.Create( var iFile: text);
 
 destructor tCsvOutputFileFilter.Destroy();
    begin
+      Flush( OutputFile);
       if( CloseOnDestroy) then Close( OutputFile);
       inherited Destroy();
    end; // Destroy

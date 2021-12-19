@@ -122,7 +122,7 @@ initialization
       if( lbp_types.show_init) then writeln( 'lbp_output_file.initialization:  begin');
       SetInputFileParam( true, true, true, true);
       SetOutputFileParam( false, true, true, true);
-
+      
       AddUsage( '   ========== Generic CSV Filter Options ==========');
       AddParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
       AddParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
