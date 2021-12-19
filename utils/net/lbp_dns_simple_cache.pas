@@ -375,7 +375,7 @@ function tDnsSimpleCache.DnsTupleReverseLookup( IpW32: word32): tDnsTuple;
       HostResolver.ClearData();
 {$ifdef WINDOWS}
       RevStr:= ReverseDottedOrder(IpStr);
-      Found:=  HostResolver.AddressLookup( RevIpStr);
+      Found:=  HostResolver.AddressLookup( RevStr);
 {$else WINDOWS}
       Found:=  HostResolver.AddressLookup( IPStr);
 {$endif WINDOWS}
