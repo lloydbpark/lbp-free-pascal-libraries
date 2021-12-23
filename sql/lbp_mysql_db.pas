@@ -40,8 +40,8 @@ unit lbp_mysql_db;
 interface
 {$include lbp_standard_modes.inc}
 {$ifndef windows}
-   {$LINKLIB ssl}
-   {$LINKLIB mysqlclient_r}
+//   {$LINKLIB ssl}
+   {$LINKLIB libmysqlclient}
 {$endif}
 
 uses
@@ -52,7 +52,7 @@ uses
    openssl,
 //   sslsockets,
 //   opensslsockets,
-   mysql55;
+   mysql80dyn;
 
 
 // ************************************************************************

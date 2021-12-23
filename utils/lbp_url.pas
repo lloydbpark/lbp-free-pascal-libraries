@@ -36,7 +36,7 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
 {$WARNING This unit can be replaced by Free Pascal's built in libraries}
 {$WARNING Specifically, use URIParser ParseURI() and EncodeURI}
-{$WARNING https://www.freepascal.org/docs-html/current/fcl/uriparser/turi.html
+{$WARNING https://www.freepascal.org/docs-html/current/fcl/uriparser/turi.html}
 // ========================================================================
 // = The unit defines a URL class which parses a URL to it's component 
 // = parts and assembles the components into a URL
@@ -52,11 +52,12 @@ interface
 uses
    lbp_types,
    lbp_utils,  // lbp_exceptions
-   lbp_name_value_pair_trees, 
+   lbp_generic_containers, 
    sysutils;    // Exceptions
 
 type
    URLException = class( lbp_exception);
+   tQueryDict = specialize tgDictionary< string, string>;
 
 
 // ************************************************************************
@@ -74,7 +75,7 @@ type
          MyPath:         string;
          MyQueryString:  string;
          MyAnchor:       string;
-         QueryTree:      tNameValuePairTree;
+         QueryDict:      tQueryDict;
       public
          constructor  Create( URLstring: string);
          destructor   Destroy(); override;
@@ -89,10 +90,10 @@ type
          function     GetQueryValue(): string;
          function     GetQueryFind( VarName: string): string;
          // Get QueryString variable names
-         function     GetFirstQuery():    string;
-         function     GetLastQuery():     string;
-         function     GetNextQuery():     string;
-         function     GetPreviousQuery(): string;
+         // function     GetFirstQuery():    string;
+         // function     GetLastQuery():     string;
+         // function     GetNextQuery():     string;
+         // function     GetPreviousQuery(): string;
       public
          property  ResourceType: string read MyResourceType write MyResourceType;
          property  UserName:     string read MyUserName     write MyUserName;
@@ -142,9 +143,9 @@ constructor tURL.Create( URLstring: string);
 
 destructor  tURL.Destroy();
    begin
-      if( QueryTree <> nil) then begin
-         QueryTree.RemoveAll( True);
-         QueryTree.Destroy();
+      if( QueryDict <> nil) then begin
+         QueryDict.RemoveAll( True);
+         QueryDict.Destroy();
       end;
    end; // Destroy()
 
@@ -162,7 +163,7 @@ procedure tURL.Clear();
       Port:=         0;
       Path:=         '';
       QueryString:=  '';
-      QueryTree:=    nil;
+      QueryDict:=    nil;
       Anchor:=       '';
      Delimiters:=    AllDelimiters;
    end; // Clear()
@@ -355,8 +356,6 @@ function tURL.ToString(): string;
 // ************************************************************************
 
 procedure tURL.Dump();
-   var
-      TempName: string;
    begin
       writeln( AsString);
       writeln( '     Resource Type = ', ResourceType);
@@ -366,11 +365,9 @@ procedure tURL.Dump();
       writeln( '     Port          = ', Port);
       writeln( '     Path          = ', Path);
       writeln( '     Query String  = ', QueryString);
-      if( QueryTree <> nil) then begin
-         TempName:= QueryTree.GetFirst();
-         while( Length( TempName) > 0) do begin
-            writeln( '          ', TempName, ' = ', QueryTree.Value);
-            TempName:= QueryTree.GetNext();
+      if( QueryDict <> nil) then begin
+         while( QueryDict.Next) do begin
+            writeln( '          ', QueryDict.Key, ' = ', QueryDict.Value);
          end;
       end;
       writeln( '     Anchor        = ', Anchor);
@@ -409,10 +406,10 @@ procedure tURL.ParseQuery();
 
          // If we have a valid name and value, then add it to our tree.
          if( (Length( TempValue) > 0) and (Length( TempName) > 0)) then begin
-            if( QueryTree = nil) then begin
-               QueryTree:= tNameValuePairTree.Create( false);
+            if( QueryDict = nil) then begin
+               QueryDict:= tQueryDict.Create( tQueryDict.tCompareFunction( @CompareStrings));
             end;
-            QueryTree.Add( TempName, TempValue);
+            QueryDict.Add( TempName, TempValue);
          end;
       end; // While
    end; // ParseQuery();
@@ -424,10 +421,10 @@ procedure tURL.ParseQuery();
 
 function tURL.GetQueryValue(): string;
    begin
-      if( QueryTree = nil) then begin
+      if( QueryDict = nil) then begin
          result:= '';
       end else begin
-         result:= QueryTree.Value;
+         result:= QueryDict.Value;
       end;
    end; // GetQueryValue()
 
@@ -440,69 +437,67 @@ function tURL.GetQueryValue(): string;
 
 function tURL.GetQueryFind( VarName: string): string;
    begin
-      if( QueryTree = nil) then begin
-         result:= '';
-      end else begin
-         result:= QueryTree.Find( VarName);
+      result:= '';
+      if( QueryDict <> nil) then begin
+         if( QueryDict.Find( VarName)) then result:= QueryDict.Value;
       end;
    end; // GetQueryFind()
 
 
-// ************************************************************************
-// * GetFirstQuery() - Returns the first URL Query String variable name.
-// ************************************************************************
+// // ************************************************************************
+// // * GetFirstQuery() - Returns the first URL Query String variable name.
+// // ************************************************************************
 
-function tURL.GetFirstQuery():    string;
-   begin
-      if( QueryTree = nil) then begin
-         result:= '';
-      end else begin
-         result:= QueryTree.GetFirst();
-      end;
-   end; // GetFirstQuery();
-
-
-// ************************************************************************
-// * GetFirstQuery() - Returns the next URL Query String variable name.
-// ************************************************************************
-
-function tURL.GetLastQuery():     string;
-   begin
-      if( QueryTree = nil) then begin
-         result:= '';
-      end else begin
-         result:= QueryTree.GetLast();
-      end;
-   end; // GetLastQuery();
+// function tURL.GetFirstQuery():    string;
+//    begin
+//       result:= '';
+//       if( QueryDict <> nil) then begin
+//          result:= QueryTree.GetFirst();
+//       end;
+//    end; // GetFirstQuery();
 
 
-// ************************************************************************
-// * GetNextQuery() - Returns the next URL Query String variable name.
-// ************************************************************************
+// // ************************************************************************
+// // * GetFirstQuery() - Returns the next URL Query String variable name.
+// // ************************************************************************
 
-function tURL.GetNextQuery():     string;
-   begin
-      if( QueryTree = nil) then begin
-         result:= '';
-      end else begin
-         result:= QueryTree.GetNext();
-      end;
-   end; // GetNextQuery();
+// function tURL.GetLastQuery():     string;
+//    begin
+//       if( QueryTree = nil) then begin
+//          result:= '';
+//       end else begin
+//          result:= QueryTree.GetLast();
+//       end;
+//    end; // GetLastQuery();
 
 
-// ************************************************************************
-// * GetPreviousQuery() - Returns the previous URL Query String variable 
-// *                      name.
-// ************************************************************************
+// // ************************************************************************
+// // * GetNextQuery() - Returns the next URL Query String variable name.
+// // ************************************************************************
 
-function tURL.GetPreviousQuery(): string;
-   begin
-      if( QueryTree = nil) then begin
-         result:= '';
-      end else begin
-         result:= QueryTree.GetPrevious();
-      end;
-   end; // GetPreviousQuery();
+// function tURL.GetNextQuery():     string;
+//    begin
+//       if( QueryTree = nil) then begin
+//          result:= '';
+//       end else begin
+//          result:= QueryTree.GetNext();
+//       end;
+//    end; // GetNextQuery();
+
+
+// // ************************************************************************
+// // * GetPreviousQuery() - Returns the previous URL Query String variable 
+// // *                      name.
+// // ************************************************************************
+
+// function tURL.GetPreviousQuery(): string;
+//    begin
+//       if( QueryTree = nil) then begin
+//          result:= '';
+//       end else begin
+//          result:= QueryTree.GetPrevious();
+//       end;
+//    end; // GetPreviousQuery();
 
 
 // ************************************************************************

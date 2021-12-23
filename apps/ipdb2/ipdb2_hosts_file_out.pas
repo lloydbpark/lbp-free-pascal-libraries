@@ -32,6 +32,7 @@ uses
    ipdb2_home_config,
    ipdb2_tables,
    ipdb2_flags,
+   lbp_generic_containers,
    sysutils;
 
 
@@ -39,11 +40,16 @@ uses
 // * Global Variables
 // ************************************************************************
 var
-   FullNode:    FullNodeQuery;
-   FullAlias:   FullAliasQuery;
-   Domains:     DomainsTable;
-   DomainName:  string;
-   DomainID:    string; // The domain ID number as a string
+   PrefixLines: tStringList;
+   OutputDomains: array of string = ('la-park.org', 'vpn-client.la-park.org',
+                                     'park.home');
+   HeaderLine:    string = '# ************************************************************************';
+   HeaderLabel:   string = '# * IPdb2 Home hosts';
+   HostsFileName: string;
+   FullNode:      FullNodeQuery;
+   FullAlias:     FullAliasQuery;
+   Domains:       DomainsTable;
+
 
 // ************************************************************************
 // * InitArgvParser() - Initialize the command line usage message and
@@ -73,12 +79,16 @@ procedure Initialize();
    begin
       InitArgvParser();
 
-      If( Length( UnnamedParams) <> 1) then raise lbp_exception.Create( 'You must enter the DNS domain you wish to output as a command line parameter!');
-      DomainName:= UnnamedParams[ 0];
-
-      Domains:=   DomainsTable.Create();
-      FullNode:=  FullNodeQuery.Create();
-      FullAlias:= FullAliasQuery.Create();     
+      PrefixLines:=  tStringList.Create();
+      Domains:=      DomainsTable.Create();
+      Domains.Query( 'where name = "la-park.org"');
+      FullNode:=     FullNodeQuery.Create();
+      FullAlias:=    FullAliasQuery.Create();     
+{$ifdef WINDOWS}
+      HostsFileName:= 'c:\windows\system32\drivers\etc\hosts';
+{$else WINDOWS}
+      HostsFileName:= '/etc/hosts';
+{$endif WINDOWS}
    end; // Initialize()
 
 
@@ -91,7 +101,113 @@ procedure Finalize();
       Domains.Destroy;
       FullAlias.Destroy;
       FullNode.Destroy;
+
+      PrefixLines.RemoveAll( False);
+      PrefixLines.Destroy;
    end; // Finalize()
+
+
+// ************************************************************************
+// * ReadPrefix() - Read and store the host file in PrefixLines., Stop at 
+// * the end of the file or at the first occurance of HeaderLine.Name
+// ************************************************************************
+
+procedure ReadPrefix();
+   var
+      Hosts: text;
+      Line:  string = '';
+      Done:  boolean = false;
+   begin
+      Assign( Hosts, HostsFileName);
+      Reset( Hosts);
+
+      while( (not Done) and (not EOF( Hosts))) do begin
+         ReadLn( Hosts, Line);
+         Done:= (Line = HeaderLine);
+         if( not Done) then PrefixLines.Queue:= Line;
+      end;
+
+      Close( Hosts);
+   end; // ReadPrifix()
+
+
+// ************************************************************************
+// * WritePrefix() - Write PrefixLines to the passed Hosts file
+// ************************************************************************
+
+procedure WritePrefix( var Hosts: Text);
+   var 
+      Line: string;
+   begin
+      for Line in PrefixLines do begin
+         Writeln( Hosts, Line);
+      end;  
+      writeln( HeaderLine);
+      Writeln( HeaderLabel);
+   end; // WritePrefix()
+
+
+// ************************************************************************
+// * WriteDomain() - Write the hosts in a single passed domain to 
+// *  the Hosts file (Or OUTPUT if the user doesn't have write permissions)
+// ************************************************************************
+
+procedure WriteDomain( DomainName: string; var HostsFile: Text);
+   var
+      DomainID:  string;
+   begin
+writeln( 'WriteDomain: start - DomainName = ', DomainName);
+      Domains.Query( 'where Name = "' + DomainName + '"');
+writeln( 'WriteDomain: 01');
+      if( not Domains.Next) then raise lbp_exception.Create( 'The domain "' + DomainName + '" was not found in IPdb2!');
+writeln( 'WriteDomain: 02');
+      DomainID:= Domains.ID.GetSQLValue;
+writeln( 'WriteDomain: 03');
+
+      FullNode.Query( 'and NodeInfo.DomainID = ' + DomainID + ' order by CurrentIP');
+      while( FullNode.Next) do begin
+         writeln( HostsFile, FullNode.CurrentIP.GetValue, '   ', FullNode.FullName);
+      end;
+
+      FullAlias.Query( 'and Aliases.DomainID = ' + DomainID + ' order by CurrentIP');
+      while( FullAlias.Next) do begin
+         writeln( HostsFile, FullAlias.CurrentIP.GetValue, '   ', FullAlias.FullName);
+      end;
+   end; // WriteDomain()
+
+
+// ************************************************************************
+// * OutputHosts()
+// ************************************************************************
+
+procedure OutputHosts();
+   var
+      HostsFile:  text;
+      Opened:     boolean = false;
+      DomainName: string;
+   begin
+      ReadPrefix();
+
+      // Attempt to re-open the hosts file in write mode
+      try
+         Assign( HostsFile, HostsFileName);
+         Rewrite( HostsFile);
+         Opened:= true;
+      except
+      end;
+
+      if( Opened) then WritePrefix( HostsFile) else WritePrefix( OUTPUT);
+writeln( 'OutputHosts():  30  ', Opened);
+      for DomainName in OutputDomains do begin
+         if( Opened) then begin
+            WriteDomain( DomainName, HostsFile);
+         end else begin
+            WriteDomain( DomainName, OUTPUT);
+         end;
+      end;
+
+      if( Opened) then Close( HostsFile);
+   end; // OutputHosts()
 
 
 // ************************************************************************
@@ -101,19 +217,7 @@ procedure Finalize();
 begin
    Initialize;
 
-   Domains.Query( 'where Name = "' + DomainName + '"');
-   if( not Domains.Next) then raise lbp_exception.Create( 'The domain "' + DomainName + '" was not found in IPdb2!');
-   DomainID:= Domains.ID.GetSQLValue;
-
-   FullNode.Query( 'and NodeInfo.DomainID = ' + DomainID + ' order by CurrentIP');
-   while( FullNode.Next) do begin
-      writeln( FullNode.CurrentIP.GetValue, '   ', FullNode.FullName);
-   end;
-
-   FullAlias.Query( 'and Aliases.DomainID = ' + DomainID + ' order by CurrentIP');
-   while( FullAlias.Next) do begin
-      writeln( FullAlias.CurrentIP.GetValue, '   ', FullAlias.FullName);
-   end;
+   OutputHosts();
 
    Finalize;
 end.  // ipdb2_hosts_file_out program
