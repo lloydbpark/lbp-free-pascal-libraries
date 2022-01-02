@@ -395,6 +395,7 @@ constructor dbResults.Create( const idbType:   string;
       StoredAsHTML:= false; // might be changed in InitVars
       AccessAsHTML:= false; // might be changed in InitVars
       InitVars();
+
       // Assume the child has filled in Fields, let our EscapeString
       // function work for the child.
       Temp:= dbField( Fields.GetFirst());

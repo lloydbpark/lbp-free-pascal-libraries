@@ -41,8 +41,6 @@ uses
 // ************************************************************************
 var
    PrefixLines: tStringList;
-   OutputDomains: array of string = ('la-park.org', 'vpn-client.la-park.org',
-                                     'park.home');
    HeaderLine:    string = '# ************************************************************************';
    HeaderLabel:   string = '# * IPdb2 Home hosts';
    HostsFileName: string;
@@ -78,12 +76,12 @@ procedure InitArgvParser();
 procedure Initialize();
    begin
       InitArgvParser();
-
       PrefixLines:=  tStringList.Create();
+
       Domains:=      DomainsTable.Create();
-      Domains.Query( 'where name = "la-park.org"');
       FullNode:=     FullNodeQuery.Create();
       FullAlias:=    FullAliasQuery.Create();     
+
 {$ifdef WINDOWS}
       HostsFileName:= 'c:\windows\system32\drivers\etc\hosts';
 {$else WINDOWS}
@@ -142,8 +140,8 @@ procedure WritePrefix( var Hosts: Text);
       for Line in PrefixLines do begin
          Writeln( Hosts, Line);
       end;  
-      writeln( HeaderLine);
-      Writeln( HeaderLabel);
+      writeln( Hosts, HeaderLine);
+      Writeln( Hosts, HeaderLabel);
    end; // WritePrefix()
 
 
@@ -152,18 +150,8 @@ procedure WritePrefix( var Hosts: Text);
 // *  the Hosts file (Or OUTPUT if the user doesn't have write permissions)
 // ************************************************************************
 
-procedure WriteDomain( DomainName: string; var HostsFile: Text);
-   var
-      DomainID:  string;
+procedure WriteDomain( DomainID: string; var HostsFile: Text);
    begin
-writeln( 'WriteDomain: start - DomainName = ', DomainName);
-      Domains.Query( 'where Name = "' + DomainName + '"');
-writeln( 'WriteDomain: 01');
-      if( not Domains.Next) then raise lbp_exception.Create( 'The domain "' + DomainName + '" was not found in IPdb2!');
-writeln( 'WriteDomain: 02');
-      DomainID:= Domains.ID.GetSQLValue;
-writeln( 'WriteDomain: 03');
-
       FullNode.Query( 'and NodeInfo.DomainID = ' + DomainID + ' order by CurrentIP');
       while( FullNode.Next) do begin
          writeln( HostsFile, FullNode.CurrentIP.GetValue, '   ', FullNode.FullName);
@@ -184,7 +172,7 @@ procedure OutputHosts();
    var
       HostsFile:  text;
       Opened:     boolean = false;
-      DomainName: string;
+      DomainID:   string;
    begin
       ReadPrefix();
 
@@ -197,12 +185,14 @@ procedure OutputHosts();
       end;
 
       if( Opened) then WritePrefix( HostsFile) else WritePrefix( OUTPUT);
-writeln( 'OutputHosts():  30  ', Opened);
-      for DomainName in OutputDomains do begin
+
+      Domains.Query();
+      while( Domains.Next) do begin
+         DomainID:= Domains.ID.GetValue;
          if( Opened) then begin
-            WriteDomain( DomainName, HostsFile);
+            WriteDomain( DomainID, HostsFile);
          end else begin
-            WriteDomain( DomainName, OUTPUT);
+            WriteDomain( DomainID, OUTPUT);
          end;
       end;
 

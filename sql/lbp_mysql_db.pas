@@ -40,7 +40,7 @@ unit lbp_mysql_db;
 interface
 {$include lbp_standard_modes.inc}
 {$ifndef windows}
-//   {$LINKLIB ssl}
+   {$LINKLIB ssl}
    {$LINKLIB libmysqlclient}
 {$endif}
 
@@ -52,7 +52,7 @@ uses
    openssl,
 //   sslsockets,
 //   opensslsockets,
-   mysql80dyn;
+   mysql55;
 
 
 // ************************************************************************
@@ -327,18 +327,14 @@ procedure MySQLdbResults.SQLExecute( QueryStr: string);
    var
       DBHandle:    PMYSQL;
    begin
-
       if( not Connection.IsOpen) then begin
          Connection.Open();
       end;
-
       DBHandle:= MySQLdbConnection( Connection).DBHandle;
-
       if( mysql_real_query( DBHandle, @QueryStr[ 1],
                             Length( QueryStr)) <> 0) then begin
          raise SQLdbException.Create( mysql_error( DBHandle));
       end;
-
    end; // SQLExecute()
 
 
@@ -542,9 +538,6 @@ procedure MySQLdbResults.SetDatabase( dbName: string);
             'MySQLdbConnection.SetDatabase():  Database name can not be empty!');
       end;
       Connection.Database:= dbName;
-      if( Connection.IsOpen) then begin
-         SQLExecute( 'use ' + dbName);
-      end;
 
       DatabaseStr:= dbName;
    end; // SetDatabase()
