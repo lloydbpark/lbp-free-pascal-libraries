@@ -311,7 +311,7 @@ function ReverseDottedOrder( const S: string; const Dot: char = '.'): string;
       Temp: string;
    begin
       Temp:= S;
-      i:= pos( '.', Temp);
+      i:= pos( Dot, Temp);
       if( i > 0) then begin
          result:= copy( Temp, 1, i - 1);
          Temp:= copy( Temp, i + 1, Length( Temp) - i);
