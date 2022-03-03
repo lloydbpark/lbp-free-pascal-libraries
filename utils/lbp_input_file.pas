@@ -61,7 +61,7 @@ var
    InputFile:       text;
    InputStream:     tHandleStream;
    InputFileHandle: tHandle;  // the UNIX or Windows file handle associated with InputFile
-
+   InputIsPipe:     boolean = false;
 
 // ************************************************************************
 
@@ -205,6 +205,7 @@ procedure ParseArgv();
          end;
       // Do we read from the input pipe?
       end else if( (not IsATTY( INPUT)) and (not DoNotOpen)) then begin
+         InputIsPipe:= true;
          InputFile:= Input;
          Available:= true;
       end else if( IsRequired) then begin
