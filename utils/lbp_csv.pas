@@ -66,6 +66,11 @@ const
 
 function CsvQuote( S: string): string; // Quote the string in a CSV compatible way
 
+// Convert spreadsheet style column names ('A', 'B', 'C' ...) to/from 
+//    numeric indexes.
+function IndexToColumn( ColNum: integer): string;
+function ColumnToIndex( ColName: string): integer;
+
 procedure SetCsvDelimiter( D: char);  // Set the default Delimiter for quoting CSV
        // and the creation of tCsv instances
 function GetCsvDelimiter(): char; // Returns the default Delimiter
@@ -508,6 +513,59 @@ function tCsvCellArrayHelper.ToCsv( Delimiter: char = ','): string;
 // =========================================================================
 // = Global functions
 // =========================================================================
+// ************************************************************************
+// * IndexToColumn() - Converts the passed zero based column index to 
+// *                   Spreadsheet Column letters. 0 = A, 26 = Z, 27 = AA
+// ************************************************************************
+
+function IndexToColumn( ColNum: integer): string;
+   var
+      Base:       integer;
+      Remainder:  integer;
+   begin
+      Base:= ord( 'A');
+      ColNum:= ColNum + 1;
+      result:= '';
+      while( ColNum > 0) do begin
+         Remainder:= (ColNum - 1) mod 26;
+         result:= char( Base + Remainder) + result;
+         ColNum:= (ColNum - Remainder - 1) div 26
+      end; // While colNum > 0
+   end; // IndexToColumn()
+
+
+
+// ************************************************************************
+// * ColumnToIndex() - Converts the 'A', 'B', 'C' ... spreadsheet column 
+// *                   names to the zero based column index.
+// ************************************************************************
+
+function ColumnToIndex( ColName: string): integer;
+   var
+      Base:  integer;
+      L:     integer; // length
+      i:     integer;
+      Y:     integer; // Raise 26 to the power Y
+      Pow:   integer;
+   begin
+      result:= 0;
+      Base:=   ord( 'A') - 1;
+      L:=      Length( ColName);
+      for i:= 1 to L do begin
+         // Pow = 26 to the power of ( L - 1)
+         Y:= L - i;
+         Pow:= 1;
+         while( Y > 0) do begin
+            Pow *= 26;
+            dec( Y);
+         end;
+
+         result += (ord( ColName[ i]) - Base) * Pow; // IntXtoY( 26, L - i);
+      end;
+      result -= 1;
+   end;  // ColumnToIndex()
+
+
 // *************************************************************************
 // * SetCsvDelimiter() - Sets the default character that separates cells in 
 // *                     a line.
