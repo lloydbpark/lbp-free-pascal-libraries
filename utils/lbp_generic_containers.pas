@@ -427,7 +427,6 @@ type
          function    Previous():  boolean; virtual;
          function    Next():      boolean; virtual;
          function    Key(): K; virtual;
-         function    Value(): V; virtual;
          function    GetEnumerator(): tEnumerator;
          function    Reverse(): tReverseEnumerator;
          function    KeyEnum(): tKeyEnumerator;
@@ -437,6 +436,8 @@ type
       private
          function    FindNode( iKey: K): tNode; virtual;
          function    FindItem( iKey: K): V; virtual; // used by the index property
+         procedure   SetValue( iValue: V); virtual;
+         function    GetValue(): V; virtual;
          procedure   RemoveNode( N: tNode);  virtual; // Remove the passed node
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tNode; DestroyElements: boolean); virtual;
@@ -453,6 +454,7 @@ type
          property    Name:  string  read MyName write MyName;
          property    Compare: tCompareFunction read MyCompare write MyCompare;
          property    NodeToString:  tNodeToStringFunction read MyNodeToString write MyNodeToString;
+         property    Value: V read GetValue write SetValue; 
          property    Items[ iKey: K]: V read FindItem; default;
       end; // tgDictionary
 
@@ -2918,7 +2920,7 @@ function tgDictionary.Next(): boolean;
 
 
 // ************************************************************************
-// * Key() - Return the Key of the current node in the tree.True
+// * Key() - Return the Key of the current node in the tree.
 // ************************************************************************
 
 function tgDictionary.Key(): K;
@@ -2932,17 +2934,31 @@ function tgDictionary.Key(): K;
 
 
 // ************************************************************************
-// * Value() - Return the value of the current node in the tree.True
+// * SetValue() - Set the value of the current node in the tree.
 // ************************************************************************
 
-function tgDictionary.Value(): V;
+procedure tgDictionary.SetValue( iValue: V);
+   begin
+      // Starting a new iteration?
+      if( CurrentNode = nil) then begin
+         raise lbpContainerException.Create( 'Attempt to access the current dictionary node''s value outside of an enumeration.');
+      end;
+      CurrentNode.Value:= iValue;
+   end; /// SetValue()
+
+
+// ************************************************************************
+// * GetValue() - Return the value of the current node in the tree.
+// ************************************************************************
+
+function tgDictionary.GetValue(): V;
    begin
       // Starting a new iteration?
       if( CurrentNode = nil) then begin
          raise lbpContainerException.Create( 'Attempt to access the current tree node''s value outside of an enumeration.');
       end;
       result:= CurrentNode.Value;
-   end; /// Value()
+   end; /// GetValue()
 
 
 // ************************************************************************

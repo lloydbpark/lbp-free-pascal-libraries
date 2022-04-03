@@ -797,7 +797,7 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvCellArray);
          Name:= NewHeader[ i];
          // Is the new header field in the old headers?
          if( HeaderDict.Find( Name)) then begin
-            IndexMap[ i]:= HeaderDict.Value();
+            IndexMap[ i]:= HeaderDict.Value;
          end else begin
             if( AllowNew) then begin
                IndexMap[ i]:= -1; 
