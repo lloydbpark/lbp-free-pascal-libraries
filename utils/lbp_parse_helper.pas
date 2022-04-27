@@ -136,6 +136,8 @@ type
          function    SkipText( iText: string): boolean;  // true if matched text was found and skipped
          function    SkipTo( iC: Char): boolean; // True if the passed character was found
          function    SkipTo( ChrSet: tCharSet): boolean; // True if one of ChrSet was found  
+         function    SkipPast( iC: Char): boolean; // True if the passed character was found
+         function    SkipPast( ChrSet: tCharSet): boolean; // True if one of ChrSet was found         
          function    ReadLn(): string;
          procedure   SkipEOL();  // Skip one End of Line.  Does nothing if we aren't at an EndOfLine
          property    Chr: char read GetChr write UngetChr;
@@ -470,6 +472,38 @@ function tChrSource.SkipTo( ChrSet: TCharSet): boolean;
 
 
 // ************************************************************************
+// * SkipPast() - Skips forward until the passed character is found or until 
+// *              the last character is read.  Returns true if it was found.
+// ************************************************************************
+
+function tChrSource.SkipPast( iC: char): boolean;
+   var
+      c: char;
+   begin
+      c:= GetChr;
+      while((c <> EOFChr) and (c <> iC)) do c:= GetChr;
+      result:= (c = iC);
+   end; // SkipPast();
+
+
+// ************************************************************************
+// * SkipPast() - Skips forward until one of the passed characters is found
+// *              or until  the last character is read.  Returns true if it 
+// *              was found.
+// ************************************************************************
+
+function tChrSource.SkipPast( ChrSet: TCharSet): boolean;
+   var
+      c: char;
+   begin
+      c:= GetChr;
+      while((c <> EOFChr) and (not (c in ChrSet))) do c:= GetChr;
+      UnGetChr( c);
+      result:= (c in ChrSet);
+   end; // SkipPast();
+
+
+// ************************************************************************
 // * SkipEol() - If the next characters in the queue are a Windows, Unix,
 // *             or old Mac OS line ending, it will be skipped.  Otherwise
 // *             nothing happens.
@@ -492,7 +526,7 @@ function tChrSource.ReadLn(): string;
       while( not( PeekChr in EolChrs)) do result:= result + chr;
       if( PeekChr = CRchr) then GetChr; // discard it.
       if( PeekChr = LFchr) then GetChr; // discard it.
-   end; // SkipEol()
+   end; // ReadLn()
 
 
 
