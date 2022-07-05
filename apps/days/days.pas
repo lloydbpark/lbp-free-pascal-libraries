@@ -39,6 +39,7 @@ uses
 var
    NumberOfDays: integer = 8;
    DoCovidEmail: boolean = false;
+   DoFolders:    boolean = false;
    ToMonday:     array[ 1..7] of integer = ( +1, 0, -1, -2, 4, 3, 2);
    DowStr:       array[ 1..7] of string = ( 'Sunday', 'Monday', 'Tuesday',
                     'Wednesday', 'Thursday', 'Friday', 'Saturday');
@@ -84,6 +85,15 @@ procedure ParseArgv();
          end;   
       end; 
       DoCovidEmail:= ParamSet( 'covid');
+      DoFolders:= ParamSet( 'make-folders');
+
+      if( DoCovidEmail and DoFolders) then begin
+         raise Exception.Create( '''Covid'' and ''make-folders'' are mutually exclusive options!');
+      end;
+      
+      if( DoFolders and (not ParamSet( 'number-of-days'))) then begin
+         NumberOfDays:= 7;
+      end;
    end; // ParseArgv();
 
    
@@ -104,6 +114,8 @@ procedure InitArgvParser();
       InsertUsage( '   Start date is optional.  Today''s date is used if none is specified.');
       InsertUsage( '');
       InsertParam( ['n', 'd', 'number-of-days'], true, '', 'The number of days to print.  Defaults to 8');
+      InsertParam( ['f', 'folders', 'make-folders'], false, '', 'Instead of showing the dates, make folders in');
+      InsertUsage( '                                 the current folder for reviewing daily reports.');
       InsertParam( ['c', 'covid'], false, '', 'Print out the subject line and body for a work');
       InsertUsage( '                                 from home message to Bob.');
       AddPostParseProcedure( @ParseArgv);
@@ -146,7 +158,6 @@ procedure PrintEmail();
       DT:           tDateTime;
       MondayDT:     tDateTime;
       FridayDT:     tDateTime;
-      ThisOrNext:   string = 'next';
       MondayOffset: integer;
       FridayOffset: integer;
       MondayStr:    string;
@@ -186,12 +197,50 @@ procedure PrintEmail();
 
 
 // ************************************************************************
+// * CreateFolders() - creates the folders
+// ************************************************************************
+
+procedure CreateFolders();
+   var
+      i:      integer;
+      DT:     tDateTime;
+      DOW:    string;
+      Folder: string;
+   begin
+      DT:= CurrentTime.TimeOfDay;
+
+      // For each day
+      for i:= 1 to NumberOfDays do begin
+         DOW:= DowStr[ DayOfWeek( DT)];
+         Folder:= Copy( CurrentTime.Str, 1, 10) + ' - ' + DOW;
+
+         mkdir( Folder);
+         mkdir( Folder + DirectorySeparator + 'done');
+
+         writeln( Folder);
+
+         DT:= IncDay( DT);
+         CurrentTime.TimeOfDay:= DT;
+      end; // for each day
+   end; // CreateFolders()
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
    InitArgvParser;
+
    writeln;
-   if( DoCovidEmail) then PrintEmail() else PrintDays();
+
+   if( DoCovidEmail) then begin
+      PrintEmail();
+   end else if( DoFolders) then begin
+      CreateFolders();
+   end else begin
+      PrintDays();
+   end;
+
    writeln;
 end.  // days
