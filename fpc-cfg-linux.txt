@@ -139,24 +139,24 @@
 
 # path to the messagefile, not necessary anymore but can be used to override
 # the default language
-#-Fr/opt/fpc/current/lib/fpc/$fpcversion/msg/errore.msg
-#-Fr/opt/fpc/current/lib/fpc/$fpcversion/msg/errorn.msg
-#-Fr/opt/fpc/current/lib/fpc/$fpcversion/msg/errores.msg
-#-Fr/opt/fpc/current/lib/fpc/$fpcversion/msg/errord.msg
-#-Fr/opt/fpc/current/lib/fpc/$fpcversion/msg/errorr.msg
+#-Fr/opt/lbp/fpc/current/lib/fpc/$fpcversion/msg/errore.msg
+#-Fr/opt/lbp/fpc/current/lib/fpc/$fpcversion/msg/errorn.msg
+#-Fr/opt/lbp/fpc/current/lib/fpc/$fpcversion/msg/errores.msg
+#-Fr/opt/lbp/fpc/current/lib/fpc/$fpcversion/msg/errord.msg
+#-Fr/opt/lbp/fpc/current/lib/fpc/$fpcversion/msg/errorr.msg
 
 # searchpath for units and other system dependent things
--Fu/opt/fpc/current/lib/fpc/$fpcversion/units/$fpctarget
--Fu/opt/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/*
--Fu/opt/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/rtl
+-Fu/opt/lbp/fpc/current/lib/fpc/$fpcversion/units/$fpctarget
+-Fu/opt/lbp/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/*
+-Fu/opt/lbp/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/rtl
 
 #IFDEF FPCAPACHE_1_3
--Fu/opt/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/httpd13/
+-Fu/opt/lbp/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/httpd13/
 #ELSE
 #IFDEF FPCAPACHE_2_0
--Fu/opt/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/httpd20
+-Fu/opt/lbp/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/httpd20
 #ELSE
--Fu/opt/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/httpd22
+-Fu/opt/lbp/fpc/current/lib/fpc/$fpcversion/units/$fpctarget/httpd22
 #ENDIF
 #ENDIF
 
@@ -172,11 +172,11 @@
 #endif
 
 # searchpath for libraries
-#-Fl/opt/fpc/current/lib/fpc/$fpcversion/lib
+#-Fl/opt/lbp/fpc/current/lib/fpc/$fpcversion/lib
 #-Fl/lib;/usr/lib
 
 # searchpath for tools
--FD/opt/fpc/current/lib/fpc/$fpcversion/bin/$FPCTARGET
+-FD/opt/lbp/fpc/current/lib/fpc/$fpcversion/bin/$FPCTARGET
 
 
 # --------------------------------------
@@ -203,12 +203,12 @@
 -Fu~/programming/pascal/lbp/sql/*
 -Fu~/programming/pascal/lbp/utils/*
 
--Fu/opt/fpc/third-party
--Fu/opt/fpc/third-party/*
+-Fu/opt/lbp/fpc/third-party
+-Fu/opt/lbp/fpc/third-party/*
 
 # Lazarus LCL
--Fu/opt/lazarus/lazarus/lcl/units/x86_64-linux
--Fu/opt/lazarus/current/components/lazutils/lib/$FPCTARGET/
+-Fu/opt/lbp/lazarus/lazarus/lcl/units/x86_64-linux
+-Fu/opt/lbp/lazarus/current/components/lazutils/lib/$FPCTARGET/
 
 # Synapase
 #-Fu/opt/synapse/source/lib
