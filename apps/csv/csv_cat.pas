@@ -46,6 +46,7 @@ uses
    lbp_csv,
    lbp_parse_helper,
    lbp_generic_containers,
+   lbp_input_file,
    lbp_output_file,
    sysutils; // FileExists()
 
